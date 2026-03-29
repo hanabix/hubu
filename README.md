@@ -2,7 +2,8 @@
 
 ## UI 视图
 
-![UI](prototype/snapshot.png)
+<img src="./prototype/snapshot.png" alt="UI" width="50%" />
+
 
 - 窗口底部显示的是常规信息，从左到右依次是
   - 当前时间，24小时制；
