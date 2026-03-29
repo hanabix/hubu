@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>AI Glasses Prototype</title>
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
+        />
+        <style>
+            :root {
+                --hud-green: #00ff55;
+                --bg: #000000;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                background: #111111;
+                font-family:
+                    "Andale Mono", "SFMono-Regular", "Consolas", monospace;
+            }
+
+            .screen {
+                position: relative;
+                width: 480px;
+                height: 640px;
+                background: var(--bg);
+                color: var(--hud-green);
+                overflow: hidden;
+            }
+
+            .glow {
+                color: var(--hud-green);
+                filter: drop-shadow(0 0 3px rgba(0, 255, 85, 0.75));
+            }
+
+            .metric {
+                position: absolute;
+                top: 62px;
+                left: 34px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 20px;
+                line-height: 1;
+            }
+
+            .heart-value {
+                display: flex;
+                align-items: baseline;
+                gap: 10px;
+            }
+
+            .reading-value {
+                display: inline-block;
+                width: 56px;
+                text-align: right;
+            }
+
+            .reading-unit {
+                display: inline-block;
+                font-family:
+                    "Andale Mono", "SFMono-Regular", "Consolas", monospace;
+            }
+
+            svg {
+                width: 24px;
+                height: 24px;
+                fill: var(--hud-green);
+                flex: 0 0 auto;
+            }
+
+            .pace {
+                position: absolute;
+                top: 30px;
+                left: 34px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 20px;
+                line-height: 1;
+            }
+
+            .cadence {
+                position: absolute;
+                top: 94px;
+                left: 34px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 20px;
+                line-height: 1;
+            }
+
+            .material-symbols-rounded {
+                font-family: "Material Symbols Rounded";
+                font-weight: normal;
+                font-style: normal;
+                font-size: 24px;
+                line-height: 1;
+                letter-spacing: normal;
+                text-transform: none;
+                display: inline-block;
+                white-space: nowrap;
+                word-wrap: normal;
+                direction: ltr;
+                -webkit-font-smoothing: antialiased;
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+
+            .device {
+                position: absolute;
+                left: 50%;
+                bottom: 34px;
+                transform: translateX(-50%);
+                font-size: 20px;
+                line-height: 1;
+            }
+
+            .distance {
+                position: absolute;
+                top: 30px;
+                right: 34px;
+                font-size: 20px;
+                line-height: 1;
+                text-align: right;
+            }
+
+            .duration {
+                position: absolute;
+                top: 62px;
+                right: 34px;
+                font-size: 20px;
+                line-height: 1;
+                text-align: right;
+            }
+
+            .time {
+                position: absolute;
+                left: 34px;
+                bottom: 34px;
+                font-size: 20px;
+                line-height: 1;
+            }
+
+            .battery {
+                position: absolute;
+                right: 34px;
+                bottom: 34px;
+                font-size: 20px;
+                line-height: 1;
+                text-align: right;
+            }
+
+            .line {
+                position: absolute;
+                top: 59px;
+                height: 1.2px;
+                background: rgba(0, 255, 85, 0.75);
+                filter: drop-shadow(0 0 3px rgba(0, 255, 85, 0.6));
+            }
+
+            .line-left {
+                left: 34px;
+                width: 84px;
+            }
+
+            .line-right {
+                right: 34px;
+                width: 84px;
+            }
+        </style>
+    </head>
+    <body>
+        <main class="screen">
+            <div class="metric glow">
+                <span class="material-symbols-rounded" aria-hidden="true"
+                    >cardiology</span
+                >
+                <span class="heart-value">
+                    <span class="reading-value">156</span>
+                    <span class="reading-unit">bpm</span>
+                </span>
+            </div>
+
+            <div class="pace glow">
+                <span class="material-symbols-rounded" aria-hidden="true"
+                    >timer</span
+                >
+                <span class="heart-value">
+                    <span class="reading-value">6'21"</span>
+                    <span class="reading-unit">/km</span>
+                </span>
+            </div>
+            <div class="cadence glow">
+                <span class="material-symbols-rounded" aria-hidden="true"
+                    >steps</span
+                >
+                <span class="heart-value">
+                    <span class="reading-value">178</span>
+                    <span class="reading-unit">spm</span>
+                </span>
+            </div>
+            <div class="distance glow">5.43 km</div>
+            <div class="duration glow">00:36:18</div>
+            <div class="time glow">15:47:23</div>
+            <div class="device glow">Enduro 2</div>
+            <div class="battery glow">87%</div>
+        </main>
+    </body>
+</html>
