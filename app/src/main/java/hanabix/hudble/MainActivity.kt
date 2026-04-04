@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.remember
-import hanabix.hudble.data.BatteryDataReader
+import hanabix.hudble.data.DeviceBatteryObserver
 import hanabix.hudble.ui.HudScreen
 import hanabix.hudble.ui.HudViewModel
 import hanabix.hudble.ui.theme.HudbleTheme
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
                         object : ViewModelProvider.Factory {
                             @Suppress("UNCHECKED_CAST")
                             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return HudViewModel(BatteryDataReader(application)) as T
+                                return HudViewModel(DeviceBatteryObserver(application)) as T
                             }
                         }
                     }

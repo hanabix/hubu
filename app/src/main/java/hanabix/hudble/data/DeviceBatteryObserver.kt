@@ -8,7 +8,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-class BatteryDataReader(
+class DeviceBatteryObserver(
     private val context: Context,
 ) {
     fun getCurrentBatteryLevel(): Int {

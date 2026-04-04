@@ -12,7 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class BatteryDataReaderTest {
+class DeviceBatteryObserverTest {
 
     @Test
     fun getCurrentBatteryLevel_returnsCorrectValue() {
@@ -22,8 +22,8 @@ class BatteryDataReaderTest {
         every { mockIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1) } returns 100
         every { mockContext.registerReceiver(null, any<IntentFilter>()) } returns mockIntent
 
-        val reader = BatteryDataReader(mockContext)
-        assertEquals(87, reader.getCurrentBatteryLevel())
+        val observer = DeviceBatteryObserver(mockContext)
+        assertEquals(87, observer.getCurrentBatteryLevel())
     }
 
     @Test
@@ -31,7 +31,7 @@ class BatteryDataReaderTest {
         val mockContext = mockk<Context>()
         every { mockContext.registerReceiver(null, any<IntentFilter>()) } returns null
 
-        val reader = BatteryDataReader(mockContext)
-        assertEquals(0, reader.getCurrentBatteryLevel())
+        val observer = DeviceBatteryObserver(mockContext)
+        assertEquals(0, observer.getCurrentBatteryLevel())
     }
 }

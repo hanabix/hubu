@@ -2,7 +2,7 @@ package hanabix.hudble.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import hanabix.hudble.data.BatteryDataReader
+import hanabix.hudble.data.DeviceBatteryObserver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class HudViewModel(
-    private val batteryDataReader: BatteryDataReader,
+    private val deviceBatteryObserver: DeviceBatteryObserver,
 ) : ViewModel() {
 
     // 使用 Locale.ROOT 确保时间始终使用 ASCII 数字显示，避免某些区域设置（如阿拉伯语）使用非标准数字符号
@@ -43,7 +43,7 @@ class HudViewModel(
 
     private fun observeBatteryLevel() {
         viewModelScope.launch {
-            batteryDataReader.observeBatteryLevel().collect { batteryLevel ->
+            deviceBatteryObserver.observeBatteryLevel().collect { batteryLevel ->
                 updateBatteryLevel(batteryLevel)
             }
         }
