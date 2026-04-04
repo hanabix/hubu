@@ -24,3 +24,8 @@ UI效果原型参见：[view-480x640](prototype/view-480x640.html)
 - [ ] [Running Speed and Cadence Service](https://www.bluetooth.com/specifications/specs/running-speed-and-cadence-service/)
 - [ ] [Cycling Speed and Cadence Service](https://www.bluetooth.com/specifications/specs/cycling-speed-and-cadence-service/)
 - [ ] [Cycling Power Service](https://www.bluetooth.com/specifications/specs/cycling-power-service/)
+
+
+## 已知局限
+
+- 仅支持 RSCS 必要测量数据，即 **速度** 和 **步频** 
