@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
@@ -29,29 +28,19 @@ import hanabix.hudble.ui.theme.HeadUpFitnessTheme
 import hanabix.hudble.ui.theme.HudBlack
 import hanabix.hudble.ui.theme.HudGreen
 
-data class HudMetric(
-    val label: String,
-    val value: String,
-    val unit: String,
-)
-
 data class HudUiState(
-    val pace: HudMetric,
-    val heartRate: HudMetric,
-    val cadence: HudMetric,
-    val distance: String,
-    val duration: String,
+    val pace: String,
+    val heartRate: String,
+    val cadence: String,
     val currentTime: String,
     val deviceName: String,
     val batteryLevel: String,
 ) {
     companion object {
         fun preview() = HudUiState(
-            pace = HudMetric(label = "配速", value = "6'21\"", unit = "/km"),
-            heartRate = HudMetric(label = "心率", value = "156", unit = "bpm"),
-            cadence = HudMetric(label = "步频", value = "178", unit = "spm"),
-            distance = "5.43 km",
-            duration = "00:36:18",
+            pace = "6'21\"",
+            heartRate = "156",
+            cadence = "178",
             currentTime = "15:47",
             deviceName = "Enduro 2",
             batteryLevel = "87%",
@@ -87,14 +76,14 @@ fun HudScreen(
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_hud_timer),
-                            contentDescription = state.pace.label,
+                            contentDescription = "Pace",
                             tint = HudGreen,
                             modifier = Modifier
                                 .size(18.dp.scaled(scale))
-                                .semantics { contentDescription = state.pace.label },
+                                .semantics { contentDescription = "Pace" },
                         )
                     },
-                    value = state.pace.value,
+                    value = state.pace,
                     valueTag = "pace_value",
                     textSize = metricText,
                     mono = mono,
@@ -105,14 +94,14 @@ fun HudScreen(
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_hud_cardiology),
-                            contentDescription = state.heartRate.label,
+                            contentDescription = "Heart Rate",
                             tint = HudGreen,
                             modifier = Modifier
                                 .size(18.dp.scaled(scale))
-                                .semantics { contentDescription = state.heartRate.label },
+                                .semantics { contentDescription = "Heart Rate" },
                         )
                     },
-                    value = state.heartRate.value,
+                    value = state.heartRate,
                     valueTag = "heart_rate_value",
                     textSize = metricText,
                     mono = mono,
@@ -123,14 +112,14 @@ fun HudScreen(
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_hud_steps),
-                            contentDescription = state.cadence.label,
+                            contentDescription = "Cadence",
                             tint = HudGreen,
                             modifier = Modifier
                                 .size(18.dp.scaled(scale))
-                                .semantics { contentDescription = state.cadence.label },
+                                .semantics { contentDescription = "Cadence" },
                         )
                     },
-                    value = state.cadence.value,
+                    value = state.cadence,
                     valueTag = "cadence_value",
                     textSize = metricText,
                     mono = mono,
