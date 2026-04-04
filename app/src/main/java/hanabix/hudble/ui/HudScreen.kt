@@ -12,6 +12,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -24,7 +26,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hanabix.hudble.R
-import hanabix.hudble.ui.theme.HeadUpFitnessTheme
+import hanabix.hudble.ui.theme.HudbleTheme
 import hanabix.hudble.ui.theme.HudBlack
 import hanabix.hudble.ui.theme.HudGreen
 
@@ -50,6 +52,15 @@ data class HudUiState(
 
 @Composable
 fun HudScreen(
+    viewModel: HudViewModel,
+    modifier: Modifier = Modifier,
+) {
+    val state by viewModel.uiState.collectAsState()
+    HudScreenContent(state, modifier)
+}
+
+@Composable
+fun HudScreenContent(
     state: HudUiState,
     modifier: Modifier = Modifier,
 ) {
@@ -198,7 +209,7 @@ private fun TextUnit.scaled(scale: Float): TextUnit = (value * scale).sp
 @Preview(widthDp = 480, heightDp = 640, showBackground = true, backgroundColor = 0x000000)
 @Composable
 private fun HudScreenPreview() {
-    HeadUpFitnessTheme {
-        HudScreen(state = HudUiState.preview())
+    HudbleTheme {
+        HudScreenContent(state = HudUiState.preview())
     }
 }

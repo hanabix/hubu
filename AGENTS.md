@@ -11,3 +11,9 @@
 - 纯原生 UI 渲染，禁止使用 WebView ；
 - 默认情况 UI 的实现应优先遵循 [Rokid YodaOS-Sprite 设计规范](docs/ui-spec.md) 的要求；
 - 在没有可用设备的时候，禁止执行 `connectedDebugAndroidTest` 测试；
+
+## 关于电量
+
+- `batteryLevel` 是指运行当前程序的系统电量
+- 电量百分比数值应四舍五入取整
+

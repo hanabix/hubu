@@ -1,0 +1,37 @@
+package hanabix.hudble.data
+
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.mockk.every
+import io.mockk.mockk
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class BatteryDataReaderTest {
+
+    @Test
+    fun getCurrentBatteryLevel_returnsCorrectValue() {
+        val mockContext = mockk<Context>()
+        val mockIntent = mockk<Intent>()
+        every { mockIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) } returns 87
+        every { mockIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1) } returns 100
+        every { mockContext.registerReceiver(null, any<IntentFilter>()) } returns mockIntent
+
+        val reader = BatteryDataReader(mockContext)
+        assertEquals(87, reader.getCurrentBatteryLevel())
+    }
+
+    @Test
+    fun getCurrentBatteryLevel_returnsZeroForInvalidValues() {
+        val mockContext = mockk<Context>()
+        every { mockContext.registerReceiver(null, any<IntentFilter>()) } returns null
+
+        val reader = BatteryDataReader(mockContext)
+        assertEquals(0, reader.getCurrentBatteryLevel())
+    }
+}

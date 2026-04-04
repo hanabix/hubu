@@ -14,7 +14,7 @@ private val HudColorScheme = darkColorScheme(
 )
 
 @Composable
-fun HeadUpFitnessTheme(
+fun HudbleTheme(
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
