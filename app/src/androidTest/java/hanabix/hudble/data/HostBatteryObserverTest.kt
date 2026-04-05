@@ -14,7 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class DeviceBatteryObserverTest {
+class HostBatteryObserverTest {
 
     @Test
     fun observe_emitsCorrectBatteryLevel() = runTest {
@@ -24,7 +24,7 @@ class DeviceBatteryObserverTest {
         every { mockIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1) } returns 100
         every { mockContext.registerReceiver(any(), any<IntentFilter>()) } returns mockIntent
 
-        val observer = DeviceBatteryObserver(mockContext)
+        val observer = HostBatteryObserver(mockContext)
         val result = observer.observe().first()
 
         assertEquals("87%", result)
