@@ -31,20 +31,14 @@ private val HUDGreen = Color(0xFF00FF55)
 
 @Composable
 fun HUDScreen(
-    pace: String,
-    heartRate: String,
-    cadence: String,
     currentTime: String,
-    deviceStatus: DeviceStatus,
     batteryLevel: String,
+    deviceStatus: DeviceStatus,
+    pace: String?,
+    heartRate: String?,
+    cadence: String?,
     modifier: Modifier = Modifier,
 ) {
-    val statusText = when (deviceStatus) {
-        is DeviceStatus.Scanning -> "Scanning..."
-        is DeviceStatus.Scanned -> deviceStatus.deviceName
-        is DeviceStatus.NotFound -> "Tap to rescan"
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -76,7 +70,7 @@ fun HUDScreen(
 
         Bar {
             Span(currentTime, "current_time")
-            Span(statusText, "device_status")
+            Span(deviceStatus.label, "device_status")
             Span(batteryLevel, "battery_level")
         }
     }
@@ -106,7 +100,7 @@ private fun Span(text: String, tag: String) {
 private fun Metric(
     modifier: Modifier = Modifier,
     painter: Painter,
-    value: String,
+    value: String?,
     desc: String,
     tag: String,
 ) {
@@ -123,43 +117,31 @@ private fun Metric(
                 .size(10.dp)
                 .semantics { contentDescription = desc },
         )
-        Span(value, tag)
+        Span(value ?: "N/A", tag)
     }
-}
-
-@Preview(widthDp = 480, heightDp = 640, showBackground = true, backgroundColor = 0x000000)
-@Composable
-private fun HUDScreenPreview() {
-    HUDScreen(
-        pace = "6'21\"",
-        heartRate = "156",
-        cadence = "178",
-        currentTime = "15:47",
-        deviceStatus = DeviceStatus.Scanned("Enduro 2"),
-        batteryLevel = "87%",
-    )
 }
 
 @Preview(widthDp = 480, heightDp = 640, showBackground = true, backgroundColor = 0x000000)
 @Composable
 private fun HUDScreenNotFoundPreview() {
     HUDScreen(
-        pace = "6'21\"",
-        heartRate = "156",
-        cadence = "178",
+        pace = null,
+        heartRate = null,
+        cadence = null,
         currentTime = "15:47",
         deviceStatus = DeviceStatus.NotFound,
         batteryLevel = "87%",
     )
 }
 
+
 @Preview(widthDp = 480, heightDp = 640, showBackground = true, backgroundColor = 0x000000)
 @Composable
 private fun HUDScreenScanningPreview() {
     HUDScreen(
-        pace = "6'21\"",
-        heartRate = "156",
-        cadence = "178",
+        pace = null,
+        heartRate = null,
+        cadence = null,
         currentTime = "15:47",
         deviceStatus = DeviceStatus.Scanning,
         batteryLevel = "87%",

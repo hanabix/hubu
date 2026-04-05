@@ -64,9 +64,9 @@ class MainActivity : ComponentActivity() {
             val deviceStatus by viewModel.deviceStatus.collectAsState(initial = Scanning)
 
             HUDScreen(
-                pace = "6'12\"",
-                heartRate = "152",
-                cadence = "178",
+                pace = null,
+                heartRate = null,
+                cadence = null,
                 currentTime = currentTime,
                 deviceStatus = deviceStatus,
                 batteryLevel = batteryLevel,

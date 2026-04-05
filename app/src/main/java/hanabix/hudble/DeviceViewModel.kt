@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import hanabix.hudble.data.BluetoothScanner
 import hanabix.hudble.data.DeviceStatus
+import hanabix.hudble.data.DeviceStatus.Found
 import hanabix.hudble.data.DeviceStatus.NotFound
-import hanabix.hudble.data.DeviceStatus.Scanned
 import hanabix.hudble.data.DeviceStatus.Scanning
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * State transitions:
  * ```
- * (start) → Scanning → Scanned(name)
+ * (start) → Scanning → Found(name)
  *                  → NotFound → (tap) → Scanning → ...
  * ```
  */
@@ -60,7 +60,7 @@ class DeviceViewModel(
         _deviceStatus.value = Scanning
         viewModelScope.launch {
             val device = bluetoothScanner.scan(10.seconds).firstOrNull()
-            _deviceStatus.value = device?.let { Scanned(it.name ?: "Unknown") } ?: NotFound
+            _deviceStatus.value = device?.let { Found(it) } ?: NotFound
         }
     }
 
