@@ -10,31 +10,28 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.remember
 import hanabix.hudble.data.DeviceBatteryObserver
 import hanabix.hudble.data.TimeSynchronizer
-import hanabix.hudble.ui.HudScreen
-import hanabix.hudble.ui.HudViewModel
-import hanabix.hudble.ui.theme.HudbleTheme
+import hanabix.hudble.ui.HUDScreen
+import hanabix.hudble.ui.HUDViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            HudbleTheme {
-                val viewModel: HudViewModel = viewModel(
-                    factory = remember {
-                        object : ViewModelProvider.Factory {
-                            @Suppress("UNCHECKED_CAST")
-                            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                return HudViewModel(
-                                    DeviceBatteryObserver(application),
-                                    TimeSynchronizer()
-                                ) as T
-                            }
+            val viewModel: HUDViewModel = viewModel(
+                factory = remember {
+                    object : ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            return HUDViewModel(
+                                DeviceBatteryObserver(application),
+                                TimeSynchronizer()
+                            ) as T
                         }
                     }
-                )
-                HudScreen(viewModel = viewModel)
-            }
+                }
+            )
+            HUDScreen(viewModel = viewModel)
         }
     }
 }

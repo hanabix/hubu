@@ -11,13 +11,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
-class HudViewModel(
+class HUDViewModel(
     private val deviceBatteryObserver: DeviceBatteryObserver,
     private val timeSynchronizer: TimeSynchronizer,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HudUiState.preview())
-    val uiState: StateFlow<HudUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(HUDUiState.preview())
+    val uiState: StateFlow<HUDUiState> = _uiState.asStateFlow()
 
     init {
         timeSynchronizer.current().onEach { time ->

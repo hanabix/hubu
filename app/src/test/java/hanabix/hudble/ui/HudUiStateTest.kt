@@ -3,11 +3,11 @@ package hanabix.hudble.ui
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class HudUiStateTest {
+class HUDUiStateTest {
 
     @Test
-    fun previewMatchesHudPrototypeDefaults() {
-        val state = HudUiState.preview()
+    fun previewMatchesHUDPrototypeDefaults() {
+        val state = HUDUiState.preview()
 
         assertEquals("6'21\"", state.pace)
         assertEquals("156", state.heartRate)

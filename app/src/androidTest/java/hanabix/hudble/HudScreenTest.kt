@@ -10,13 +10,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class HudScreenTest {
+class HUDScreenTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun displaysHudSectionsFromReadme() {
+    fun displaysHUDSectionsFromReadme() {
         composeTestRule.onNodeWithTag("pace_value").fetchSemanticsNode()
         composeTestRule.onNodeWithTag("heart_rate_value").fetchSemanticsNode()
         composeTestRule.onNodeWithTag("cadence_value").fetchSemanticsNode()
