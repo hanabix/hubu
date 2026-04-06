@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.ble
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice

@@ -1,25 +1,29 @@
-package hanabix.hudble.data
+package hanabix.hudble.model
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 
 /**
  * Represents the BLE device scanning state machine.
  */
 sealed interface DeviceStatus {
-    val label: String
+
+    /** Returns the display label for this state. */
+    fun label(): String
 
     /** Actively scanning for devices. */
     data object Scanning : DeviceStatus {
-        override val label: String = "Scanning..."
+        override fun label(): String = "Scanning..."
     }
 
     /** A compatible device was found and scanned successfully. */
     data class Found(val device: BluetoothDevice) : DeviceStatus {
-        override val label: String = device.name ?: "Unknown"
+        @SuppressLint("MissingPermission")
+        override fun label(): String = device.name ?: "Unknown"
     }
 
     /** Scanning completed without finding any compatible device. Tap to rescan. */
     data object NotFound : DeviceStatus {
-        override val label: String = "Tap to rescan"
+        override fun label(): String = "Tap to rescan"
     }
 }

@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.ble
 
 /**
  * Parses Heart Rate Measurement characteristic data (UUID 0x2A37).
@@ -15,12 +15,12 @@ package hanabix.hudble.data
 object HeartRateService {
 
     /**
-     * Parses heart rate value from the raw characteristic data.
+     * Reads heart rate value from the raw characteristic data.
      *
      * @param data raw byte array from the Heart Rate Measurement characteristic
      * @return heart rate in BPM, or null if data is invalid
      */
-    fun parseHeartRate(data: ByteArray): Int? {
+    fun read(data: ByteArray): Int? {
         if (data.isEmpty()) return null
 
         val flags = data[0].toInt()

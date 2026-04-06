@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.ble
 
 /**
  * Represents parsed RSCS (Running Speed and Cadence Service) measurement data.
@@ -27,12 +27,12 @@ data class RSCSMeasurement(
 object RunningSpeedCadenceService {
 
     /**
-     * Parses RSCS measurement data from the raw characteristic data.
+     * Reads RSCS measurement data from the raw characteristic data.
      *
      * @param data raw byte array from the RSC Measurement characteristic
      * @return parsed measurement, or null if data is too short
      */
-    fun parseMeasurement(data: ByteArray): RSCSMeasurement? {
+    fun read(data: ByteArray): RSCSMeasurement? {
         if (data.size < 4) return null
 
         val speedRaw = ((data[2].toInt() and 0xFF) shl 8) or (data[1].toInt() and 0xFF)

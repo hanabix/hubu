@@ -14,29 +14,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import hanabix.hudble.data.BluetoothScanner
-import hanabix.hudble.data.Clock
-import hanabix.hudble.data.GattServices
-import hanabix.hudble.data.HostBatteryObserver
-import hanabix.hudble.data.DeviceStatus.Scanning
+import hanabix.hudble.model.DeviceStatus.Scanning
+import hanabix.hudble.util.Clock
+import hanabix.hudble.util.HostBattery
 import hanabix.hudble.ui.HUDScreen
 
 class MainActivity : ComponentActivity() {
 
-    private val hostBatteryObserver by lazy { HostBatteryObserver(application) }
+    private val hostBattery by lazy { HostBattery(application) }
     private val clock by lazy { Clock() }
-    private val bluetoothScanner by lazy {
-        BluetoothScanner(
-            application,
-            listOf(GattServices.HEART_RATE, GattServices.RUNNING_SPEED_CADENCE),
-        )
-    }
 
     private val viewModel by viewModels<DeviceViewModel> {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                DeviceViewModel(applicationContext, bluetoothScanner) as T
+                DeviceViewModel(application) as T
         }
     }
 
@@ -46,6 +38,7 @@ class MainActivity : ComponentActivity() {
         if (granted) viewModel.startScan()
     }
 
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         viewModel.onKeyEvent(event)
         return super.dispatchKeyEvent(event)
@@ -54,11 +47,11 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 保持屏幕常亮
+        // Keep screen on
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableEdgeToEdge()
         setContent {
-            val batteryLevel by remember { hostBatteryObserver.observe() }
+            val batteryLevel by remember { hostBattery.observe() }
                 .collectAsState(initial = "")
             val currentTime by remember { clock.now() }
                 .collectAsState(initial = "")

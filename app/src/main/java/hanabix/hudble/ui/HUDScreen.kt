@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import hanabix.hudble.R
-import hanabix.hudble.data.DeviceStatus
+import hanabix.hudble.model.DeviceStatus
 
 private val HUDGreen = Color(0xFF00FF55)
 
@@ -70,7 +70,7 @@ fun HUDScreen(
 
         Bar {
             Span(currentTime, "current_time")
-            Span(deviceStatus.label, "device_status")
+            Span(deviceStatus.label(), "device_status")
             Span(batteryLevel, "battery_level")
         }
     }

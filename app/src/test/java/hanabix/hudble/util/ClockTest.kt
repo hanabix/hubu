@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.util
 
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList

@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.ble
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
@@ -13,7 +13,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
@@ -68,6 +70,7 @@ class GattNotifier private constructor(
                 // Connected successfully → discover services
                 newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS -> {
                     Log.d(TAG, "Connected, discovering services...")
+                    @Suppress("MissingPermission")
                     gatt.discoverServices()
                 }
 
@@ -188,23 +191,21 @@ class GattNotifier private constructor(
      */
     @SuppressLint("MissingPermission")
     suspend fun subscribe(
-        serviceUuid: UUID,
-        characteristicUuid: UUID,
+        service: UUID,
+        characteristic: UUID,
     ): Flow<ByteArray> {
-        val characteristic = gatt.getService(serviceUuid)?.getCharacteristic(characteristicUuid)
-            ?: throw IllegalArgumentException(
-                "Characteristic not found: service=$serviceUuid, characteristic=$characteristicUuid"
-            )
+        val char = gatt.getService(service)?.getCharacteristic(characteristic)
+            ?: return emptyFlow()
 
         try {
-            enableNotification(characteristic)
+            enableNotification(char)
         } catch (e: Exception) {
             gatt.close()
-            throw e
+            return flow { throw e }
         }
 
         return characteristicFlow
-            .filter { (uuid, _) -> uuid == characteristicUuid }
+            .filter { (uuid, _) -> uuid == characteristic }
             .map { (_, data) -> data }
             .onStart { activeSubscriptions.incrementAndGet() }
             .onCompletion {

@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.ble
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -27,7 +27,7 @@ class HeartRateServiceTest {
     fun `parse UINT8 heart rate`() {
         // 0x06 0x72 -> HR = 0x72 = 114 bpm
         val data = flagsUint8WithContact + 0x72.toByte()
-        assertEquals(114, HeartRateService.parseHeartRate(data))
+        assertEquals(114, HeartRateService.read(data))
     }
 
     @Test
@@ -46,7 +46,7 @@ class HeartRateServiceTest {
         )
 
         testCases.forEach { (data, expected) ->
-            assertEquals("Failed for data: ${data.joinToString(" ")}", expected, HeartRateService.parseHeartRate(data))
+            assertEquals("Failed for data: ${data.joinToString(" ")}", expected, HeartRateService.read(data))
         }
     }
 
@@ -54,32 +54,32 @@ class HeartRateServiceTest {
     fun `parse UINT16 heart rate`() {
         // 0x07 0x80 0x00 -> HR = 0x0080 = 128 bpm (little endian)
         val data = flagsUint16WithContact + 0x80.toByte() + 0x00.toByte()
-        assertEquals(128, HeartRateService.parseHeartRate(data))
+        assertEquals(128, HeartRateService.read(data))
     }
 
     @Test
     fun `parse UINT16 heart rate with value greater than 255`() {
         // 0x07 0x00 0x01 -> HR = 0x0100 = 256 bpm
         val data = flagsUint16WithContact + 0x00.toByte() + 0x01.toByte()
-        assertEquals(256, HeartRateService.parseHeartRate(data))
+        assertEquals(256, HeartRateService.read(data))
     }
 
     @Test
     fun `return null for empty data`() {
-        assertNull(HeartRateService.parseHeartRate(byteArrayOf()))
+        assertNull(HeartRateService.read(byteArrayOf()))
     }
 
     @Test
     fun `return null for UINT8 with missing value byte`() {
         // Only flags, no HR value
-        assertNull(HeartRateService.parseHeartRate(flagsUint8WithContact))
+        assertNull(HeartRateService.read(flagsUint8WithContact))
     }
 
     @Test
     fun `return null for UINT16 with missing value bytes`() {
         // Flags + only 1 value byte (need 2 for UINT16)
         val data = flagsUint16WithContact + 0x80.toByte()
-        assertNull(HeartRateService.parseHeartRate(data))
+        assertNull(HeartRateService.read(data))
     }
 
     @Test
@@ -97,6 +97,6 @@ class HeartRateServiceTest {
             0x00.toByte(), 0x01.toByte(), // Energy Expended (UINT16 LE)
             0x00.toByte(), 0x02.toByte(), // RR-Interval (UINT16 LE)
         )
-        assertEquals(112, HeartRateService.parseHeartRate(data))
+        assertEquals(112, HeartRateService.read(data))
     }
 }

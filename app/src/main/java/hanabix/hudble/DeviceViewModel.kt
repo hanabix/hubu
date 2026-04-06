@@ -4,15 +4,15 @@ import android.util.Log
 import android.view.KeyEvent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import hanabix.hudble.data.BluetoothScanner
-import hanabix.hudble.data.DeviceStatus
-import hanabix.hudble.data.DeviceStatus.Found
-import hanabix.hudble.data.DeviceStatus.NotFound
-import hanabix.hudble.data.DeviceStatus.Scanning
-import hanabix.hudble.data.GattNotifier
-import hanabix.hudble.data.HeartRateService
-import hanabix.hudble.data.Pace.format
-import hanabix.hudble.data.RunningSpeedCadenceService
+import hanabix.hudble.ble.BluetoothScanner
+import hanabix.hudble.ble.GattNotifier
+import hanabix.hudble.ble.GattServices
+import hanabix.hudble.ble.HeartRateService
+import hanabix.hudble.ble.RunningSpeedCadenceService
+import hanabix.hudble.model.DeviceStatus
+import hanabix.hudble.model.DeviceStatus.Found
+import hanabix.hudble.model.DeviceStatus.NotFound
+import hanabix.hudble.model.DeviceStatus.Scanning
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -38,8 +39,12 @@ import kotlin.time.Duration.Companion.seconds
  */
 class DeviceViewModel(
     private val context: android.content.Context,
-    private val bluetoothScanner: BluetoothScanner,
 ) : ViewModel() {
+
+    private val bluetoothScanner = BluetoothScanner(
+        context,
+        listOf(GattServices.HEART_RATE, GattServices.RUNNING_SPEED_CADENCE),
+    )
 
     private val _deviceStatus = MutableStateFlow<DeviceStatus>(Scanning)
     val deviceStatus = _deviceStatus.asStateFlow()
@@ -80,55 +85,55 @@ class DeviceViewModel(
     private fun scan() {
         _deviceStatus.value = Scanning
         viewModelScope.launch {
-            val device = bluetoothScanner.scan(10.seconds).firstOrNull()
-            if (device != null) {
-                _deviceStatus.value = Found(device)
-                connectAndSubscribe(device)
-            } else {
+            val device = bluetoothScanner.scan(10.seconds).firstOrNull() ?: run {
                 _deviceStatus.value = NotFound
+                return@launch
             }
-        }
-    }
 
-    private fun connectAndSubscribe(device: android.bluetooth.BluetoothDevice) {
-        viewModelScope.launch {
-            try {
-                val notifier = GattNotifier.connect(context = context, device = device) { status ->
+            _deviceStatus.value = Found(device)
+
+            val n = try {
+                GattNotifier.connect(context = context, device = device) { status ->
                     Log.w(TAG, "Device disconnected, status=$status")
                     clearSensorValues()
                     _deviceStatus.value = NotFound
                 }
-
-                // Cancel previous subscriptions
-                hrJob?.cancel()
-                rscsJob?.cancel()
-
-                // Subscribe to heart rate (waits for descriptor write to complete)
-                hrJob = notifier.subscribe(HEART_RATE_SERVICE, HEART_RATE_MEASUREMENT)
-                    .mapNotNull { HeartRateService.parseHeartRate(it) }
-                    .onEach { bpm ->
-                        Log.d(TAG, "Heart rate received: $bpm")
-                        _heartRate.value = bpm.toString()
-                    }
-                    .catch { e -> Log.e(TAG, "Heart rate subscription error: ${e.message}") }
-                    .launchIn(viewModelScope)
-
-                // Subscribe to RSCS (waits for descriptor write to complete)
-                rscsJob = notifier.subscribe(RSC_SERVICE, RSC_MEASUREMENT)
-                    .mapNotNull { RunningSpeedCadenceService.parseMeasurement(it) }
-                    .onEach { measurement ->
-                        // Sensor reports single-leg cadence; multiply by 2 for bilateral cadence
-                        // consistent with Garmin watch user expectations.
-                        _cadence.value = if (measurement.cadenceRpm > 0) (measurement.cadenceRpm * 2).toString() else null
-                        _pace.value = format(measurement.speedMs)
-                    }
-                    .catch { e -> Log.w(TAG, "RSCS subscription ended: ${e.message}") }
-                    .launchIn(viewModelScope)
             } catch (e: Exception) {
                 Log.e(TAG, "Connection failed for ${device.address}: ${e.message}", e)
-                clearSensorValues()
                 _deviceStatus.value = NotFound
+                return@launch
             }
+
+            trySubscribeHrs(n)
+            trySubscribeRscs(n)
+        }
+    }
+
+    private fun trySubscribeHrs(notifier: GattNotifier) {
+        hrJob?.cancel()
+        hrJob = viewModelScope.launch {
+            notifier.subscribe(HEART_RATE_SERVICE, HEART_RATE_MEASUREMENT)
+                .mapNotNull { HeartRateService.read(it) }
+                .onEach { bpm ->
+                    Log.d(TAG, "Heart rate received: $bpm")
+                    _heartRate.value = bpm.toString()
+                }
+                .catch { e -> Log.e(TAG, "Heart rate subscription error: ${e.message}") }
+                .launchIn(this)
+        }
+    }
+
+    private fun trySubscribeRscs(notifier: GattNotifier) {
+        rscsJob?.cancel()
+        rscsJob = viewModelScope.launch {
+            notifier.subscribe(RSC_SERVICE, RSC_MEASUREMENT)
+                .mapNotNull { RunningSpeedCadenceService.read(it) }
+                .onEach { measurement ->
+                    _cadence.value = cadence(measurement.cadenceRpm)
+                    _pace.value = pace(measurement.speedMs)
+                }
+                .catch { e -> Log.w(TAG, "RSCS subscription ended: ${e.message}") }
+                .launchIn(this)
         }
     }
 
@@ -159,5 +164,23 @@ class DeviceViewModel(
             KeyEvent.KEYCODE_NUMPAD_ENTER,
             KeyEvent.KEYCODE_DPAD_CENTER,
         )
+
+        /** Converts speed in m/s to pace in "M'SS\"" format. */
+        internal fun pace(speedMs: Float): String? {
+            if (speedMs <= 0f) return null
+
+            val paceMinKm = 1000.0 / (speedMs * 60.0)
+            val minutes = paceMinKm.toInt()
+            val seconds = ((paceMinKm - minutes) * 60).roundToInt()
+
+            return if (seconds >= 60) {
+                "${minutes + 1}'00\""
+            } else {
+                "${minutes}'${seconds.toString().padStart(2, '0')}\""
+            }
+        }
+
+        /** Converts single-leg cadence to bilateral cadence. */
+        internal fun cadence(rpm: Int): String? = if (rpm > 0) (rpm * 2).toString() else null
     }
 }

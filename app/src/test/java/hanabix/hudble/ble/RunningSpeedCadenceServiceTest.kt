@@ -1,4 +1,4 @@
-package hanabix.hudble.data
+package hanabix.hudble.ble
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -25,7 +25,7 @@ class RunningSpeedCadenceServiceTest {
         // Speed = 0x02C0 = 704 -> 704/256 = 2.75 m/s = 9.90 km/h
         // Cadence = 0x53 = 83 RPM
         val data = flagsBasic + 0xC0.toByte() + 0x02.toByte() + 0x53.toByte()
-        val result = RunningSpeedCadenceService.parseMeasurement(data)
+        val result = RunningSpeedCadenceService.read(data)
 
         assertEquals(2.75f, result!!.speedMs, 0.001f)
         assertEquals(83, result.cadenceRpm)
@@ -47,7 +47,7 @@ class RunningSpeedCadenceServiceTest {
         )
 
         testCases.forEach { (data, expected) ->
-            val result = RunningSpeedCadenceService.parseMeasurement(data)
+            val result = RunningSpeedCadenceService.read(data)
             assertEquals(
                 "Failed for data: ${data.joinToString(" ")}",
                 expected.speedMs,
@@ -78,7 +78,7 @@ class RunningSpeedCadenceServiceTest {
             0x00.toByte(), 0x00.toByte(), 0x04.toByte(), 0x00.toByte(), // Total Distance (UINT32 LE)
         )
 
-        val result = RunningSpeedCadenceService.parseMeasurement(data)
+        val result = RunningSpeedCadenceService.read(data)
 
         assertEquals(0.5f, result!!.speedMs, 0.001f)
         assertEquals(90, result.cadenceRpm)
@@ -87,15 +87,15 @@ class RunningSpeedCadenceServiceTest {
     @Test
     fun `return null for data too short`() {
         // Need at least 4 bytes (flags + speed UINT16 + cadence UINT8)
-        assertNull(RunningSpeedCadenceService.parseMeasurement(byteArrayOf(0x00)))
-        assertNull(RunningSpeedCadenceService.parseMeasurement(byteArrayOf(0x00, 0x01)))
-        assertNull(RunningSpeedCadenceService.parseMeasurement(byteArrayOf(0x00, 0x01, 0x02)))
+        assertNull(RunningSpeedCadenceService.read(byteArrayOf(0x00)))
+        assertNull(RunningSpeedCadenceService.read(byteArrayOf(0x00, 0x01)))
+        assertNull(RunningSpeedCadenceService.read(byteArrayOf(0x00, 0x01, 0x02)))
     }
 
     @Test
     fun `parse RSCS with zero speed and cadence`() {
         val data = byteArrayOf(0x00, 0x00.toByte(), 0x00.toByte(), 0x00.toByte())
-        val result = RunningSpeedCadenceService.parseMeasurement(data)
+        val result = RunningSpeedCadenceService.read(data)
 
         assertEquals(0f, result!!.speedMs, 0.001f)
         assertEquals(0, result.cadenceRpm)
@@ -105,7 +105,7 @@ class RunningSpeedCadenceServiceTest {
     fun `parse RSCS with walking status flag set`() {
         // Flags = 0x04 (binary: 00000100, Bit 2 = walking/running status)
         val data = byteArrayOf(0x04.toByte(), 0x00.toByte(), 0x01.toByte(), 0x50.toByte())
-        val result = RunningSpeedCadenceService.parseMeasurement(data)
+        val result = RunningSpeedCadenceService.read(data)
 
         // Speed = 0x0100 = 256 -> 256/256 = 1.0 m/s
         assertEquals(1.0f, result!!.speedMs, 0.001f)
