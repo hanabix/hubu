@@ -20,22 +20,19 @@ UI效果原型参见：[view-480x640](prototype/view-480x640.html)
 
 基于低功耗蓝牙标准的数据获取，包括但不限于：
 
-- [ ] [Heart Rate Service](https://www.bluetooth.com/specifications/specs/heart-rate-service-1-0/)
-- [ ] [Running Speed and Cadence Service](https://www.bluetooth.com/specifications/specs/running-speed-and-cadence-service/)
+- [x] [Heart Rate Service](https://www.bluetooth.com/specifications/specs/heart-rate-service-1-0/)
+- [x] [Running Speed and Cadence Service](https://www.bluetooth.com/specifications/specs/running-speed-and-cadence-service/)
 - [ ] [Cycling Speed and Cadence Service](https://www.bluetooth.com/specifications/specs/cycling-speed-and-cadence-service/)
 - [ ] [Cycling Power Service](https://www.bluetooth.com/specifications/specs/cycling-power-service/)
 
 
 ## 连接设备
 
-启动设备扫描，并尝试连接第一个：
-
-1. 同时具备 HRS 和 RSCS 的设备，并显示设备名；若无，
-1. 仅支持 RSCS 的设备，并显示设备名；若无
-1. 仅支持 HRS 的设备，并显示设备名；若无
-1. 显示 `Tap to rescan`。
+- 自动启动设备扫描，并连接发现的第一个支持 HRS / RSCS 的设备
+- 若无可用设备，则显示 `Tap to rescan`，可单击重扫
 
 
 ## 已知局限
 
 - 仅支持 RSCS 必要测量数据，即 **速度** 和 **步频** 
+- 若存在多个可连接设备，仅连接扫描到第一个，不支持选择连接
