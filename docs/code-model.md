@@ -52,6 +52,7 @@ class BleViewModel(
 }
 
 object BleViewModel {
+  type Dispatch[D] = (State[D], Event[D]) => State[D]
   type ToConnect[D] = (D, Seq[BleMetric]) => Job
 
   def gather[D](
@@ -86,14 +87,14 @@ object BleViewModel {
     }
 
 
-  def dispatch[D](fire: ToConnect[D], send: BleEvent => Unit)
-  :(State[D], Event[D]) => State[D] = 
-    case (State(Seq(), pending, solid), jobs, Found(device)) =>
+  def dispatch[D](fire: ToConnect[D], send: BleEvent => Unit) :Dispatch[D] = 
+    case (State(Seq(), pending, solid, jobs), Found(device)) =>
       State(Seq(), pending + device, solid, jobs)
 
     case (State(metrics, pending, solid, jobs), Found(device)) =>
-      fire(device, metrics)
-      State(Seq(), peding, solid, jobs)
+      val (head, tail) = pending + device
+      val job = fire(head, metrics)
+      State(Seq(), tail, solid, jobs + (device.id -> job))
     
     case (State(metrics, pending, solid, jobs), NoMoreDevice) =>
       val actives = jobs.filter(_.isActive)
@@ -116,12 +117,12 @@ object BleViewModel {
 
     case (State(metrics, pending, solid, jobs), Reply(Notify(device, meter))) =>
       send(Available(device.name, meter))
-      State(metrics, pending - device, solid, jobs)
+      State(metrics, pending, solid, jobs)
 
     case (State(metrics, pending, solid, jobs), Reply(Fatal(device, cause))) =>
       // TODO log warning cause for debug
       
-      val actives = (jobs - device.name).filter(_.isActive)
+      val actives = (jobs - device.id).filter(_.isActive)
       if solid && actives.isEmpty then send(Unavailable)
 
       State(metrics, pending, solid, actives)

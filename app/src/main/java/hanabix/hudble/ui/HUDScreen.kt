@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import hanabix.hudble.R
-import hanabix.hudble.model.DeviceStatus
 
 private val HUDGreen = Color(0xFF00FF55)
 
@@ -33,7 +32,7 @@ private val HUDGreen = Color(0xFF00FF55)
 fun HUDScreen(
     currentTime: String,
     batteryLevel: String,
-    deviceStatus: DeviceStatus,
+    deviceStatus: String,
     pace: String?,
     heartRate: String?,
     cadence: String?,
@@ -70,7 +69,7 @@ fun HUDScreen(
 
         Bar {
             Span(currentTime, "current_time")
-            Span(deviceStatus.label(), "device_status")
+            Span(deviceStatus, "device_status")
             Span(batteryLevel, "battery_level")
         }
     }
@@ -129,7 +128,7 @@ private fun HUDScreenNotFoundPreview() {
         heartRate = null,
         cadence = null,
         currentTime = "15:47",
-        deviceStatus = DeviceStatus.NotFound,
+        deviceStatus = "Unavailable",
         batteryLevel = "87%",
     )
 }
@@ -143,7 +142,7 @@ private fun HUDScreenScanningPreview() {
         heartRate = null,
         cadence = null,
         currentTime = "15:47",
-        deviceStatus = DeviceStatus.Scanning,
+        deviceStatus = "Connecting",
         batteryLevel = "87%",
     )
 }

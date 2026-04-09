@@ -1,0 +1,307 @@
+package hanabix.hudble.ble
+
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
+import java.util.UUID
+
+class GattCallbackTest {
+
+    @Test
+    fun `onConnectionStateChange emits fatal on status failure`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+
+        harness.callback.onConnectionStateChange(
+            gatt = gatt,
+            status = 1,
+            newState = BluetoothProfile.STATE_CONNECTED,
+        )
+
+        assertEquals(1, harness.fatalCount())
+    }
+
+    @Test
+    fun `onConnectionStateChange calls discoverServices on connected success`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        every { gatt.discoverServices() } returns true
+
+        harness.callback.onConnectionStateChange(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+            newState = BluetoothProfile.STATE_CONNECTED,
+        )
+
+        verify(exactly = 1) { gatt.discoverServices() }
+        assertTrue(harness.events.isEmpty())
+    }
+
+    @Test
+    fun `onConnectionStateChange emits fatal when discoverServices returns false`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        every { gatt.discoverServices() } returns false
+
+        harness.callback.onConnectionStateChange(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+            newState = BluetoothProfile.STATE_CONNECTED,
+        )
+
+        verify(exactly = 1) { gatt.discoverServices() }
+        assertEquals(1, harness.fatalCount())
+    }
+
+    @Test
+    fun `onConnectionStateChange emits fatal on disconnected`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+
+        harness.callback.onConnectionStateChange(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+            newState = BluetoothProfile.STATE_DISCONNECTED,
+        )
+
+        assertEquals(1, harness.fatalCount())
+    }
+
+    @Test
+    fun `onServicesDiscovered starts first supported notification without unsupported`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        val hr = support(gatt, BleMetric.HeartRate)
+        support(gatt, BleMetric.RunSpeedCadence)
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        assertTrue(harness.events.none { it is BleConnectEvent.Unsupported })
+        verify(exactly = 1) {
+            gatt.setCharacteristicNotification(hr.characteristic, true)
+            gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+    }
+
+    @Test
+    fun `onServicesDiscovered emits unsupported and still starts supported notification`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        val hr = support(gatt, BleMetric.HeartRate)
+        every { gatt.getService(BleMetric.RunSpeedCadence.service) } returns null
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        val unsupported = harness.events.filterIsInstance<BleConnectEvent.Unsupported<BluetoothDevice>>()
+        assertEquals(1, unsupported.size)
+        assertEquals(harness.device, unsupported.single().device)
+        assertTrue(unsupported.single().part)
+        assertEquals(listOf(BleMetric.RunSpeedCadence), unsupported.single().metrics)
+        verify(exactly = 1) {
+            gatt.setCharacteristicNotification(hr.characteristic, true)
+            gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+    }
+
+    @Test
+    fun `onServicesDiscovered emits fatal when no supported metrics`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        every { gatt.getService(BleMetric.HeartRate.service) } returns null
+        every { gatt.getService(BleMetric.RunSpeedCadence.service) } returns null
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        assertEquals(1, harness.fatalCount())
+    }
+
+    @Test
+    fun `onServicesDiscovered emits fatal on failure`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = 7,
+        )
+
+        assertEquals(1, harness.fatalCount())
+    }
+
+    @Test
+    fun `onDescriptorWrite advances to next metric on success`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        val hr = support(gatt, BleMetric.HeartRate)
+        val rsc = support(gatt, BleMetric.RunSpeedCadence)
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        harness.callback.onDescriptorWrite(
+            gatt = gatt,
+            descriptor = hr.descriptor,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        verify(exactly = 1) {
+            gatt.setCharacteristicNotification(hr.characteristic, true)
+            gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+            gatt.setCharacteristicNotification(rsc.characteristic, true)
+            gatt.writeDescriptor(rsc.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+    }
+
+    @Test
+    fun `onDescriptorWrite emits fatal on failure`() {
+        val harness = Harness(metrics = listOf(BleMetric.HeartRate))
+        val gatt = mockk<BluetoothGatt>()
+        val hr = support(gatt, BleMetric.HeartRate)
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        harness.callback.onDescriptorWrite(
+            gatt = gatt,
+            descriptor = hr.descriptor,
+            status = 12,
+        )
+
+        assertEquals(1, harness.fatalCount())
+    }
+
+    @Test
+    fun `onCharacteristicChanged emits notify for known metric`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        val characteristic = mockk<BluetoothGattCharacteristic>()
+        every { characteristic.uuid } returns BleMetric.HeartRate.characteristic
+
+        harness.callback.onCharacteristicChanged(
+            gatt = gatt,
+            characteristic = characteristic,
+            value = byteArrayOf(0x06, 0x72),
+        )
+
+        val notify = harness.events.filterIsInstance<BleConnectEvent.Notify<BluetoothDevice>>()
+        assertEquals(1, notify.size)
+        assertEquals(BleMetric.HeartRate, notify.single().meter.metric)
+        assertArrayEquals(byteArrayOf(0x06, 0x72), notify.single().meter.data)
+    }
+
+    @Test
+    fun `onCharacteristicChanged fails on unknown metric`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        val characteristic = mockk<BluetoothGattCharacteristic>()
+        every { characteristic.uuid } returns UUID.fromString("12345678-1234-1234-1234-1234567890AB")
+
+        try {
+            harness.callback.onCharacteristicChanged(
+                gatt = gatt,
+                characteristic = characteristic,
+                value = byteArrayOf(0x01),
+            )
+            fail("Expected NoSuchElementException")
+        } catch (_: NoSuchElementException) {
+        }
+    }
+
+    @Test
+    fun `multiple failures only emit one fatal`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        every { gatt.discoverServices() } returns false
+        val descriptor = mockk<BluetoothGattDescriptor>()
+        val characteristic = mockk<BluetoothGattCharacteristic>()
+        every { descriptor.characteristic } returns characteristic
+        every { characteristic.uuid } returns BleMetric.HeartRate.characteristic
+
+        harness.callback.onConnectionStateChange(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+            newState = BluetoothProfile.STATE_CONNECTED,
+        )
+
+        harness.callback.onDescriptorWrite(
+            gatt = gatt,
+            descriptor = descriptor,
+            status = 9,
+        )
+
+        assertEquals(1, harness.fatalCount())
+    }
+
+    private class Harness(
+        metrics: List<BleMetric> = listOf(BleMetric.HeartRate, BleMetric.RunSpeedCadence),
+    ) {
+        val events = mutableListOf<BleConnectEvent<BluetoothDevice>>()
+        val device = mockk<BluetoothDevice>(relaxed = true)
+        val callback = AndroidTransport.GattCallback(
+            device = device,
+            metrics = metrics,
+            emit = { events += it },
+        )
+
+        fun fatalCount(): Int = events.count { it is BleConnectEvent.Fatal }
+    }
+
+    private data class SupportedFixture(
+        val service: BluetoothGattService,
+        val characteristic: BluetoothGattCharacteristic,
+        val descriptor: BluetoothGattDescriptor,
+    )
+
+    private fun support(
+        gatt: BluetoothGatt,
+        metric: BleMetric,
+    ): SupportedFixture {
+        val service = mockk<BluetoothGattService>()
+        val characteristic = mockk<BluetoothGattCharacteristic>()
+        val descriptor = mockk<BluetoothGattDescriptor>()
+
+        every { service.getCharacteristic(metric.characteristic) } returns characteristic
+        every { characteristic.uuid } returns metric.characteristic
+        every {
+            characteristic.getDescriptor(
+                UUID.fromString("00002902-0000-1000-8000-00805F9B34FB"),
+            )
+        } returns descriptor
+        every { descriptor.characteristic } returns characteristic
+        every { gatt.getService(metric.service) } returns service
+        every { gatt.setCharacteristicNotification(characteristic, true) } returns true
+        every {
+            gatt.writeDescriptor(
+                descriptor,
+                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+            )
+        } returns BluetoothStatusCodes.SUCCESS
+
+        return SupportedFixture(service, characteristic, descriptor)
+    }
+}
