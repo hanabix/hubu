@@ -13,7 +13,6 @@ import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import java.util.UUID
 
@@ -94,6 +93,41 @@ class GattCallbackTest {
         assertTrue(harness.events.none { it is BleConnectEvent.Unsupported })
         verify(exactly = 1) {
             gatt.setCharacteristicNotification(hr.characteristic, true)
+            gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+        }
+    }
+
+    @Test
+    fun `onServicesDiscovered uses legacy descriptor write on api 32`() {
+        val harness = Harness(sdkInt = 32)
+        val gatt = mockk<BluetoothGatt>()
+        val hr = support(gatt, BleMetric.HeartRate)
+        every { gatt.getService(BleMetric.RunSpeedCadence.service) } returns null
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        verify(exactly = 1) {
+            hr.descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            gatt.writeDescriptor(hr.descriptor)
+        }
+    }
+
+    @Test
+    fun `onServicesDiscovered uses api 33 descriptor write`() {
+        val harness = Harness(sdkInt = 33)
+        val gatt = mockk<BluetoothGatt>()
+        val hr = support(gatt, BleMetric.HeartRate)
+        every { gatt.getService(BleMetric.RunSpeedCadence.service) } returns null
+
+        harness.callback.onServicesDiscovered(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+        )
+
+        verify(exactly = 1) {
             gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
         }
     }
@@ -215,21 +249,38 @@ class GattCallbackTest {
     }
 
     @Test
-    fun `onCharacteristicChanged fails on unknown metric`() {
+    fun `legacy onCharacteristicChanged emits notify for known metric`() {
+        val harness = Harness()
+        val gatt = mockk<BluetoothGatt>()
+        val characteristic = mockk<BluetoothGattCharacteristic>()
+        every { characteristic.uuid } returns BleMetric.HeartRate.characteristic
+        every { characteristic.value } returns byteArrayOf(0x06, 0x72)
+
+        harness.callback.onCharacteristicChanged(
+            gatt = gatt,
+            characteristic = characteristic,
+        )
+
+        val notify = harness.events.filterIsInstance<BleConnectEvent.Notify<BluetoothDevice>>()
+        assertEquals(1, notify.size)
+        assertEquals(BleMetric.HeartRate, notify.single().meter.metric)
+        assertArrayEquals(byteArrayOf(0x06, 0x72), notify.single().meter.data)
+    }
+
+    @Test
+    fun `onCharacteristicChanged ignores unknown metric`() {
         val harness = Harness()
         val gatt = mockk<BluetoothGatt>()
         val characteristic = mockk<BluetoothGattCharacteristic>()
         every { characteristic.uuid } returns UUID.fromString("12345678-1234-1234-1234-1234567890AB")
 
-        try {
-            harness.callback.onCharacteristicChanged(
-                gatt = gatt,
-                characteristic = characteristic,
-                value = byteArrayOf(0x01),
-            )
-            fail("Expected NoSuchElementException")
-        } catch (_: NoSuchElementException) {
-        }
+        harness.callback.onCharacteristicChanged(
+            gatt = gatt,
+            characteristic = characteristic,
+            value = byteArrayOf(0x01),
+        )
+
+        assertTrue(harness.events.isEmpty())
     }
 
     @Test
@@ -259,6 +310,7 @@ class GattCallbackTest {
 
     private class Harness(
         metrics: List<BleMetric> = listOf(BleMetric.HeartRate, BleMetric.RunSpeedCadence),
+        sdkInt: Int = 33,
     ) {
         val events = mutableListOf<BleConnectEvent<BluetoothDevice>>()
         val device = mockk<BluetoothDevice>(relaxed = true)
@@ -266,6 +318,7 @@ class GattCallbackTest {
             device = device,
             metrics = metrics,
             emit = { events += it },
+            sdkInt = sdkInt,
         )
 
         fun fatalCount(): Int = events.count { it is BleConnectEvent.Fatal }
@@ -293,8 +346,10 @@ class GattCallbackTest {
             )
         } returns descriptor
         every { descriptor.characteristic } returns characteristic
+        every { descriptor.setValue(any()) } returns true
         every { gatt.getService(metric.service) } returns service
         every { gatt.setCharacteristicNotification(characteristic, true) } returns true
+        every { gatt.writeDescriptor(descriptor) } returns true
         every {
             gatt.writeDescriptor(
                 descriptor,

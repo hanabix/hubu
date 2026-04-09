@@ -14,6 +14,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import java.util.UUID
@@ -109,6 +110,7 @@ object AndroidTransport {
         private val device: BluetoothDevice,
         private val metrics: List<BleMetric>,
         private val emit: (BleConnectEvent<BluetoothDevice>) -> Unit,
+        private val sdkInt: Int = Build.VERSION.SDK_INT,
     ) : BluetoothGattCallback() {
         private val supportedQueue = ConcurrentLinkedQueue<BleMetric>()
         private val fatalEmit = AtomicBoolean(false)
@@ -172,12 +174,32 @@ object AndroidTransport {
             }
         }
 
+        @Deprecated("Deprecated in Android 13")
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+        ) {
+            val value = characteristic.value ?: return
+            handleNotify(characteristic, value)
+        }
+
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray,
         ) {
-            val metric = BleMetric.entries.first { it.characteristic == characteristic.uuid }
+            handleNotify(characteristic, value)
+        }
+
+        private fun handleNotify(
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+        ) {
+            val metric = BleMetric.entries.firstOrNull { it.characteristic == characteristic.uuid }
+                ?: run {
+                    return
+                }
+
             emit(
                 BleConnectEvent.Notify(
                     device = device,
@@ -194,12 +216,20 @@ object AndroidTransport {
             val cccd = char.getDescriptor(CCCD)!!
 
             gatt.setCharacteristicNotification(char, true)
-            val writeResult = gatt.writeDescriptor(
-                cccd,
-                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
-            )
-            if (writeResult != BluetoothStatusCodes.SUCCESS) {
-                fatal("writeDescriptor failed for ${char.uuid}: result=$writeResult")
+            if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
+                val writeResult = gatt.writeDescriptor(
+                    cccd,
+                    BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
+                )
+                if (writeResult != BluetoothStatusCodes.SUCCESS) {
+                    fatal("writeDescriptor failed for ${char.uuid}: result=$writeResult")
+                }
+            } else {
+                cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                val writeResult = gatt.writeDescriptor(cccd)
+                if (!writeResult) {
+                    fatal("writeDescriptor failed for ${char.uuid}")
+                }
             }
         }
 

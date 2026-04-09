@@ -1,7 +1,10 @@
+import org.gradle.testing.jacoco.tasks.JacocoReport
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    jacoco
 }
 
 android {
@@ -51,6 +54,55 @@ android {
             excludes += "META-INF/LICENSE-notice.md"
         }
     }
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        csv.required.set(false)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+        "androidx/**/*.*",
+        "**/*\$Lambda$*.*",
+        "**/*Companion*.*",
+        "**/*Preview*.*",
+        "**/*ComposableSingletons*.*",
+        "**/*\$inlined$*.*",
+    )
+
+    val debugTree = fileTree("${buildDir}/intermediates/javac/debug/classes") {
+        exclude(fileFilter)
+    }
+    val kotlinTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    classDirectories.setFrom(files(debugTree, kotlinTree))
+    sourceDirectories.setFrom(
+        files(
+            "src/main/java",
+            "src/main/kotlin",
+        ),
+    )
+    executionData.setFrom(
+        files(
+            "${buildDir}/jacoco/testDebugUnitTest.exec",
+        ),
+    )
 }
 
 dependencies {
