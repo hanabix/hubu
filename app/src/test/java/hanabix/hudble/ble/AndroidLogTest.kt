@@ -1,7 +1,9 @@
 package hanabix.hudble.ble
 
 import android.util.Log
+import hanabix.hudble.BuildConfig
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -14,5 +16,11 @@ class AndroidLogTest {
     @Test
     fun `log i does not crash under jvm`() {
         assertEquals(0, Log.i("AndroidLogTest", "hello"))
+    }
+
+    @Test
+    fun `build config includes git commit`() {
+        assertTrue(BuildConfig.GIT_COMMIT.isNotBlank())
+        assertEquals("0.1.0+${BuildConfig.GIT_COMMIT}", BuildConfig.VERSION_NAME)
     }
 }

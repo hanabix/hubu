@@ -1,4 +1,20 @@
 import org.gradle.testing.jacoco.tasks.JacocoReport
+import java.io.ByteArrayOutputStream
+
+fun Project.readGitCommit(): String {
+    val stdout = ByteArrayOutputStream()
+    return runCatching {
+        exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+            standardOutput = stdout
+            errorOutput = ByteArrayOutputStream()
+            isIgnoreExitValue = true
+        }
+        stdout.toString().trim()
+    }.getOrDefault("unknown").ifBlank { "unknown" }
+}
+
+val gitCommit = project.readGitCommit()
 
 plugins {
     alias(libs.plugins.android.application)
@@ -16,7 +32,9 @@ android {
         minSdk = 29
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "0.1.0+$gitCommit"
+
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -48,6 +66,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 
