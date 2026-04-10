@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [32])
+@Config(manifest = Config.NONE, sdk = [33])
 class AndroidConnectCallbackTest {
 
     @Test

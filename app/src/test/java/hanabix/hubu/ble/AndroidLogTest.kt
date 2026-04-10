@@ -10,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [32])
+@Config(manifest = Config.NONE, sdk = [33])
 class AndroidLogTest {
 
     @Test
