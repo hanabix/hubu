@@ -1,4 +1,4 @@
-package hanabix.hudble.ble
+package hanabix.hubu.ble
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

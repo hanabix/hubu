@@ -1,4 +1,4 @@
-package hanabix.hudble.util
+package hanabix.hubu.util
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

@@ -1,4 +1,4 @@
-package hanabix.hudble.ui
+package hanabix.hubu.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
-import hanabix.hudble.R
+import hanabix.hubu.R
 
 private val HUDGreen = Color(0xFF00FF55)
 

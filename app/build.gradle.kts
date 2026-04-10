@@ -24,11 +24,11 @@ plugins {
 }
 
 android {
-    namespace = "hanabix.hudble"
+    namespace = "hanabix.hubu"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "hanabix.hudble"
+        applicationId = "hanabix.hubu"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

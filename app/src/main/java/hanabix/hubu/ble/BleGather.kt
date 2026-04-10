@@ -1,4 +1,4 @@
-package hanabix.hudble.ble
+package hanabix.hubu.ble
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

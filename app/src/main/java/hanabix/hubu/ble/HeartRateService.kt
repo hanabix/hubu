@@ -1,4 +1,4 @@
-package hanabix.hudble.ble
+package hanabix.hubu.ble
 
 /**
  * Parses Heart Rate Measurement characteristic data (UUID 0x2A37).

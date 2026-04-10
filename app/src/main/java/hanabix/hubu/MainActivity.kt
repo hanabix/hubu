@@ -1,4 +1,4 @@
-package hanabix.hudble
+package hanabix.hubu
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -13,15 +13,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModelProvider
-import hanabix.hudble.ble.AndroidConnect
-import hanabix.hudble.ble.AndroidScan
-import hanabix.hudble.ble.BleViewModel
-import hanabix.hudble.ble.STATUS_CONNECTING
-import hanabix.hudble.ble.STATUS_TAP_TO_RECONNECT
-import hanabix.hudble.ble.ScannedDeviceBleInfo
-import hanabix.hudble.util.Clock
-import hanabix.hudble.util.HostBattery
-import hanabix.hudble.ui.HUDScreen
+import hanabix.hubu.ble.AndroidConnect
+import hanabix.hubu.ble.AndroidScan
+import hanabix.hubu.ble.BleViewModel
+import hanabix.hubu.ble.STATUS_CONNECTING
+import hanabix.hubu.ble.STATUS_TAP_TO_RECONNECT
+import hanabix.hubu.ble.ScannedDeviceBleInfo
+import hanabix.hubu.util.Clock
+import hanabix.hubu.util.HostBattery
+import hanabix.hubu.ui.HUDScreen
 
 class MainActivity : ComponentActivity() {
     private val tapKeyCodes = setOf(

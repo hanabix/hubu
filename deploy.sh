@@ -11,6 +11,6 @@ echo "Building and installing the application..."
 ./gradlew installDebug
 
 echo "Launching the application..."
-adb shell am start -n hanabix.hudble/hanabix.hudble.MainActivity
+adb shell am start -n hanabix.hubu/hanabix.hubu.MainActivity
 
 echo "Deployment complete."

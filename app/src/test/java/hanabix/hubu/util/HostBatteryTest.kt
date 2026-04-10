@@ -1,4 +1,4 @@
-package hanabix.hudble.util
+package hanabix.hubu.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

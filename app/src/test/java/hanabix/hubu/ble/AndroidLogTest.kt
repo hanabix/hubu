@@ -1,7 +1,7 @@
-package hanabix.hudble.ble
+package hanabix.hubu.ble
 
 import android.util.Log
-import hanabix.hudble.BuildConfig
+import hanabix.hubu.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

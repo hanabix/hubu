@@ -21,11 +21,11 @@
         android:allowBackup="true"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Hudble">
+        android:theme="@style/Theme.Hubu">
         <activity
-            android:name="hanabix.hudble.MainActivity"
+            android:name="hanabix.hubu.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Hudble">
+            android:theme="@style/Theme.Hubu">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

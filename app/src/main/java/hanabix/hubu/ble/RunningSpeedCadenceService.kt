@@ -1,4 +1,4 @@
-package hanabix.hudble.ble
+package hanabix.hubu.ble
 
 /**
  * Represents parsed RSCS (Running Speed and Cadence Service) measurement data.

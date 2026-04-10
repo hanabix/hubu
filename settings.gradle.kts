@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Hudble"
+rootProject.name = "Hubu"
 include(":app")
