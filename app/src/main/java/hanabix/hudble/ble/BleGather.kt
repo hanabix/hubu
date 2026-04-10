@@ -1,6 +1,5 @@
 package hanabix.hudble.ble
 
-import android.bluetooth.BluetoothDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -18,23 +17,24 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(FlowPreview::class)
-internal class DefaultBleGather<D>(
+internal class DefaultBleGather<T>(
     private val scope: CoroutineScope,
-    private val scan: BleScan<D>,
-    private val connect: BleConnect<D>,
+    private val scan: BleScan<T>,
+    private val connect: BleConnect<T>,
+    private val info: BleInfo<T>,
     private val timeout: Duration = 5.seconds,
 ) : BleGather {
     override fun invoke(metrics: List<BleMetric>): Flow<BleEvent> = channelFlow {
-        val bus = Channel<Event<D>>(Channel.UNLIMITED)
-        var state = State<D>(metrics = metrics)
+        val bus = Channel<Event<T>>(Channel.UNLIMITED)
+        var state = State<T>(metrics = metrics)
 
-        val fire: ToConnect<D> = ToConnect { device, requested ->
+        val fire: ToConnect<T> = ToConnect { device, requested ->
             connect(requested)(device)
                 .onEach { event -> bus.trySend(Event.Reply(event)) }
                 .launchIn(scope)
         }
 
-        val handle = DefaultDispatch(fire) { event ->
+        val handle = DefaultDispatch(fire, info) { event ->
             when (event) {
                 BleEvent.Unavailable -> {
                     trySend(event)
@@ -52,7 +52,7 @@ internal class DefaultBleGather<D>(
         val scanning = scan(metrics)
             .take(metrics.size)
             .timeout(timeout)
-            .onEach { device -> bus.trySend(Event.Found(device)) }
+            .onEach { value -> bus.trySend(Event.Found(value)) }
             .onCompletion { bus.trySend(Event.NoMoreDevice) }
             .launchIn(scope)
 
@@ -65,49 +65,50 @@ internal class DefaultBleGather<D>(
     }
 }
 
-private data class State<D>(
+private data class State<T>(
     val metrics: List<BleMetric>,
-    val pending: List<D> = emptyList(),
+    val pending: List<T> = emptyList(),
     val solid: Boolean = false,
     val jobs: Map<String, Job> = emptyMap(),
 )
 
-private sealed interface Event<out D> {
-    data class Found<D>(val device: D) : Event<D>
+private sealed interface Event<out T> {
+    data class Found<T>(val value: T) : Event<T>
     data object NoMoreDevice : Event<Nothing>
-    data class Reply<D>(
-        val event: BleConnectEvent<D>,
-    ) : Event<D>
+    data class Reply<T>(
+        val event: BleConnectEvent<T>,
+    ) : Event<T>
 }
 
-private fun interface Dispatch<D> {
-    operator fun invoke(state: State<D>, event: Event<D>): State<D>
+private fun interface Dispatch<T> {
+    operator fun invoke(state: State<T>, event: Event<T>): State<T>
 }
 
-private class DefaultDispatch<D>(
-    private val fire: ToConnect<D>,
+private class DefaultDispatch<T>(
+    private val fire: ToConnect<T>,
+    private val info: BleInfo<T>,
     private val send: (BleEvent) -> Unit,
-) : Dispatch<D> {
-    override fun invoke(state: State<D>, event: Event<D>): State<D> {
+) : Dispatch<T> {
+    override fun invoke(state: State<T>, event: Event<T>): State<T> {
         return when (event) {
-            is Event.Found -> onFound(state, event.device)
+            is Event.Found -> onFound(state, event.value)
             is Event.Reply -> onReply(state, event.event)
             Event.NoMoreDevice -> onNoMoreDevice(state)
         }
     }
 
     private fun onFound(
-        state: State<D>,
-        device: D,
-    ): State<D> {
+        state: State<T>,
+        value: T,
+    ): State<T> {
         val (metrics, pending, _, jobs) = state
-        val next = pending + device
+        val next = pending + value
 
         return when (metrics.isEmpty()) {
             true -> state.copy(pending = next)
             false -> {
                 val first = next.first()
-                val id = first.id()
+                val id = info.id(first)
 
                 state.copy(
                     metrics = emptyList(),
@@ -119,9 +120,9 @@ private class DefaultDispatch<D>(
     }
 
     private fun onReply(
-        state: State<D>,
-        reply: BleConnectEvent<D>,
-    ): State<D> = when (reply) {
+        state: State<T>,
+        reply: BleConnectEvent<T>,
+    ): State<T> = when (reply) {
         is BleConnectEvent.Unsupported -> {
             val (device, part, metrics) = reply
             onUnsupported(state, device, part, metrics)
@@ -139,13 +140,13 @@ private class DefaultDispatch<D>(
     }
 
     private fun onUnsupported(
-        state: State<D>,
-        device: D,
+        state: State<T>,
+        value: T,
         part: Boolean,
         metrics: List<BleMetric>,
-    ): State<D> {
+    ): State<T> {
         val (_, pending, solid, jobs) = state
-        val id = device.id()
+        val id = info.id(value)
         val actives = when (part) {
             true -> jobs.filterValues(Job::isActive)
             false -> (jobs - id).filterValues(Job::isActive)
@@ -158,7 +159,7 @@ private class DefaultDispatch<D>(
                 state.copy(
                     metrics = emptyList(),
                     pending = pending.drop(1),
-                    jobs = actives + (head.id() to fire(head, metrics)),
+                    jobs = actives + (info.id(head) to fire(head, metrics)),
                 )
             }
 
@@ -178,20 +179,20 @@ private class DefaultDispatch<D>(
     }
 
     private fun onNotify(
-        state: State<D>,
-        device: D,
+        state: State<T>,
+        value: T,
         meter: BleMeter,
-    ): State<D> {
-        send(BleEvent.Available(device = device.name(), meter = meter))
+    ): State<T> {
+        send(BleEvent.Available(device = info.name(value), meter = meter))
         return state
     }
 
     private fun onFatal(
-        state: State<D>,
-        device: D,
-    ): State<D> {
+        state: State<T>,
+        value: T,
+    ): State<T> {
         val next = state.copy(
-            jobs = (state.jobs - device.id()).filterValues(Job::isActive),
+            jobs = (state.jobs - info.id(value)).filterValues(Job::isActive),
         )
         return when {
             next.solid && next.jobs.isEmpty() && next.pending.isEmpty() -> {
@@ -204,8 +205,8 @@ private class DefaultDispatch<D>(
     }
 
     private fun onNoMoreDevice(
-        state: State<D>,
-    ): State<D> {
+        state: State<T>,
+    ): State<T> {
         val next = state.copy(
             solid = true,
             jobs = state.jobs.filterValues(Job::isActive),
@@ -220,13 +221,4 @@ private class DefaultDispatch<D>(
         }
     }
 
-    private fun Any?.id(): String = when (this) {
-        is BluetoothDevice -> address
-        else -> toString()
-    }
-
-    private fun Any?.name(): String = when (this) {
-        is BluetoothDevice -> name ?: address
-        else -> toString()
-    }
 }

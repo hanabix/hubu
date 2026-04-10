@@ -1,5 +1,6 @@
 package hanabix.hudble.ble
 
+import android.bluetooth.le.ScanResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,7 +29,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect(), FakeInfo())
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -66,7 +67,12 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(
+            scope,
+            scan.asScan(),
+            connect.asConnect(),
+            FakeInfo(mapOf("alpha" to "Enduro 2")),
+        )
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -95,7 +101,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect(), FakeInfo())
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -128,7 +134,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect(), FakeInfo())
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -157,7 +163,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect(), FakeInfo())
 
         gather(requestedMetrics()).launchIn(scope)
 
@@ -193,7 +199,12 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(
+            scope,
+            scan.asScan(),
+            connect.asConnect(),
+            FakeInfo(mapOf("alpha" to "Enduro 2")),
+        )
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -212,11 +223,11 @@ class BleGatherTest {
 
         waitUntil("available") {
             events.any {
-                it is BleEvent.Available && it.device == "alpha"
+                it is BleEvent.Available && it.device == "Enduro 2"
             }
         }
 
-        assertEquals("alpha", (events.last { it is BleEvent.Available } as BleEvent.Available).device)
+        assertEquals("Enduro 2", (events.last { it is BleEvent.Available } as BleEvent.Available).device)
     }
 
     @Test
@@ -224,7 +235,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect(), FakeInfo())
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -243,7 +254,7 @@ class BleGatherTest {
         val connect = BleConnect<String> { _: List<BleMetric> ->
             { _: String -> emptyFlow() }
         }
-        val gather = DefaultBleGather(scope, scan.asScan(), connect)
+        val gather = DefaultBleGather(scope, scan.asScan(), connect, FakeInfo())
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -261,7 +272,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val scan = FakeScan()
         val connect = FakeConnect()
-        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect())
+        val gather = DefaultBleGather(scope, scan.asScan(), connect.asConnect(), FakeInfo())
         val events = mutableListOf<BleEvent>()
 
         gather(requestedMetrics()).onEach { events += it }.launchIn(scope)
@@ -288,7 +299,7 @@ class BleGatherTest {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val connect = FakeConnect()
         val scan = BleScan<String> { _: List<BleMetric> -> flowOf("a", "b", "c") }
-        val gather = DefaultBleGather(scope, scan, connect.asConnect())
+        val gather = DefaultBleGather(scope, scan, connect.asConnect(), FakeInfo())
 
         gather(requestedMetrics()).launchIn(scope)
 
@@ -310,6 +321,7 @@ class BleGatherTest {
             scope = scope,
             scan = scan,
             connect = connect.asConnect(),
+            info = FakeInfo(),
             timeout = 50.milliseconds,
         )
         val events = mutableListOf<BleEvent>()
@@ -326,6 +338,12 @@ class BleGatherTest {
         val viewModel = BleViewModel(
             scan = { flow { } },
             connect = { _ -> { flow { } } },
+            info = object : BleInfo<ScanResult> {
+                override fun id(value: ScanResult): String = value.device.address
+
+                override fun name(value: ScanResult): String =
+                    value.scanRecord?.deviceName ?: value.device.address
+            },
         )
 
         viewModel.render(
@@ -392,6 +410,14 @@ class BleGatherTest {
         }
     }
 
+    private class FakeInfo(
+        private val names: Map<String, String> = emptyMap(),
+    ) : BleInfo<String> {
+        override fun id(value: String): String = value
+
+        override fun name(value: String): String = names[value] ?: value
+    }
+
     private class FakeConnect {
         val invoked = mutableListOf<String>()
         val metricsInvoked = mutableListOf<List<BleMetric>>()
@@ -421,7 +447,7 @@ class BleGatherTest {
         ) {
             channel.send(
                 BleConnectEvent.Unsupported(
-                    device = device,
+                    value = device,
                     part = part,
                     metrics = metrics,
                 ),
@@ -434,7 +460,7 @@ class BleGatherTest {
         ) {
             channel.send(
                 BleConnectEvent.Notify(
-                    device = device,
+                    value = device,
                     meter = BleMeter(metric = metric, data = data),
                 ),
             )
@@ -443,7 +469,7 @@ class BleGatherTest {
         suspend fun emitFatal(cause: String) {
             channel.send(
                 BleConnectEvent.Fatal(
-                    device = device,
+                    value = device,
                     cause = cause,
                 ),
             )

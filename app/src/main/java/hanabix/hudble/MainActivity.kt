@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider
 import hanabix.hudble.ble.AndroidConnect
 import hanabix.hudble.ble.AndroidScan
 import hanabix.hudble.ble.BleViewModel
+import hanabix.hudble.ble.ScanResultBleInfo
 import hanabix.hudble.util.Clock
 import hanabix.hudble.util.HostBattery
 import hanabix.hudble.ui.HUDScreen
@@ -37,7 +38,7 @@ class MainActivity : ComponentActivity() {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 val scanner = AndroidScan(application)
                 val connector = AndroidConnect(application)
-                return BleViewModel(scanner, connector) as T
+                return BleViewModel(scanner, connector, ScanResultBleInfo) as T
             }
         }
     }

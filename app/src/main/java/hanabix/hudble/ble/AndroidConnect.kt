@@ -1,7 +1,6 @@
 package hanabix.hudble.ble
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
@@ -17,17 +16,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import android.bluetooth.le.ScanResult
 
 private const val TAG = "AndroidConnect"
 private val CCCD = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
 
 internal class AndroidConnect(
     private val context: Context,
-) : BleConnect<BluetoothDevice> {
+) : BleConnect<ScanResult> {
     @SuppressLint("MissingPermission")
-    override fun invoke(metrics: List<BleMetric>): (BluetoothDevice) -> Flow<BleConnectEvent<BluetoothDevice>> = { device ->
+    override fun invoke(metrics: List<BleMetric>): (ScanResult) -> Flow<BleConnectEvent<ScanResult>> = { device ->
         callbackFlow {
-            val send: (BleConnectEvent<BluetoothDevice>) -> Unit = { event ->
+            val send: (BleConnectEvent<ScanResult>) -> Unit = { event ->
                 when (event) {
                     is BleConnectEvent.Fatal -> {
                         trySend(event)
@@ -42,7 +42,7 @@ internal class AndroidConnect(
                 metrics = metrics,
                 emit = send,
             )
-            val gatt = device.connectGatt(context.applicationContext, false, callback)
+            val gatt = device.device.connectGatt(context.applicationContext, false, callback)
 
             awaitClose {
                 gatt.close()
@@ -52,9 +52,9 @@ internal class AndroidConnect(
 }
 
 internal class AndroidConnectCallback(
-    private val device: BluetoothDevice,
+    private val device: ScanResult,
     private val metrics: List<BleMetric>,
-    private val emit: (BleConnectEvent<BluetoothDevice>) -> Unit,
+    private val emit: (BleConnectEvent<ScanResult>) -> Unit,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
 ) : BluetoothGattCallback() {
     private val supportedQueue = ConcurrentLinkedQueue<BleMetric>()
@@ -90,7 +90,7 @@ internal class AndroidConnectCallback(
             if (unsupported.isNotEmpty()) {
                 emit(
                     BleConnectEvent.Unsupported(
-                        device = device,
+                        value = device,
                         part = supported.isNotEmpty(),
                         metrics = unsupported,
                     ),
@@ -147,7 +147,7 @@ internal class AndroidConnectCallback(
 
         emit(
             BleConnectEvent.Notify(
-                device = device,
+                value = device,
                 meter = BleMeter(metric = metric, data = value),
             ),
         )
@@ -182,7 +182,7 @@ internal class AndroidConnectCallback(
         if (fatalEmit.compareAndSet(false, true)) {
             emit(
                 BleConnectEvent.Fatal(
-                    device = device,
+                    value = device,
                     cause = message,
                 ),
             )

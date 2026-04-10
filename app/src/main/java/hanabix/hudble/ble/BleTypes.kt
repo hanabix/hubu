@@ -1,22 +1,34 @@
 package hanabix.hudble.ble
 
+import android.bluetooth.le.ScanResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 
-internal fun interface BleScan<D> {
-    operator fun invoke(metrics: List<BleMetric>): Flow<D>
+internal fun interface BleScan<T> {
+    operator fun invoke(metrics: List<BleMetric>): Flow<T>
 }
 
-internal fun interface BleConnect<D> {
-    operator fun invoke(metrics: List<BleMetric>): (D) -> Flow<BleConnectEvent<D>>
+internal fun interface BleConnect<T> {
+    operator fun invoke(metrics: List<BleMetric>): (T) -> Flow<BleConnectEvent<T>>
 }
 
 internal fun interface BleGather {
     operator fun invoke(metrics: List<BleMetric>): Flow<BleEvent>
 }
 
-internal fun interface ToConnect<D> {
-    operator fun invoke(device: D, metrics: List<BleMetric>): Job
+internal fun interface ToConnect<T> {
+    operator fun invoke(value: T, metrics: List<BleMetric>): Job
+}
+
+internal interface BleInfo<T> {
+    fun id(value: T): String
+    fun name(value: T): String
+}
+
+internal val ScanResultBleInfo = object : BleInfo<ScanResult> {
+    override fun id(value: ScanResult): String = value.device.address
+
+    override fun name(value: ScanResult): String = value.scanRecord?.deviceName ?: value.device.address
 }
 
 internal enum class BleMetric(
@@ -38,22 +50,22 @@ internal data class BleMeter(
     val data: ByteArray,
 )
 
-internal sealed interface BleConnectEvent<out D> {
-    data class Unsupported<D>(
-        val device: D,
+internal sealed interface BleConnectEvent<out T> {
+    data class Unsupported<T>(
+        val value: T,
         val part: Boolean,
         val metrics: List<BleMetric>,
-    ) : BleConnectEvent<D>
+    ) : BleConnectEvent<T>
 
-    data class Notify<D>(
-        val device: D,
+    data class Notify<T>(
+        val value: T,
         val meter: BleMeter,
-    ) : BleConnectEvent<D>
+    ) : BleConnectEvent<T>
 
-    data class Fatal<D>(
-        val device: D,
+    data class Fatal<T>(
+        val value: T,
         val cause: String,
-    ) : BleConnectEvent<D>
+    ) : BleConnectEvent<T>
 }
 
 internal sealed interface BleEvent {

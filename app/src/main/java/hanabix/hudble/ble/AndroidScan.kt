@@ -1,7 +1,6 @@
 package hanabix.hudble.ble
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback as AndroidBleScanCallback
 import android.bluetooth.le.ScanFilter
@@ -18,9 +17,9 @@ private const val TAG = "AndroidScan"
 
 internal class AndroidScan(
     private val context: Context,
-) : BleScan<BluetoothDevice> {
+) : BleScan<ScanResult> {
     @SuppressLint("MissingPermission")
-    override fun invoke(metrics: List<BleMetric>): Flow<BluetoothDevice> = callbackFlow {
+    override fun invoke(metrics: List<BleMetric>): Flow<ScanResult> = callbackFlow {
         val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
         val bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
@@ -34,7 +33,7 @@ internal class AndroidScan(
             .build()
 
         val callback = AndroidScanCallback(
-            emit = { device -> trySend(device) },
+            emit = { result -> trySend(result) },
             close = { close() },
         )
 
@@ -44,7 +43,7 @@ internal class AndroidScan(
 }
 
 internal class AndroidScanCallback(
-    private val emit: (BluetoothDevice) -> Unit,
+    private val emit: (ScanResult) -> Unit,
     private val close: () -> Unit,
 ) : AndroidBleScanCallback() {
     private val seen = mutableSetOf<String>()
@@ -52,9 +51,10 @@ internal class AndroidScanCallback(
     override fun onScanResult(callbackType: Int, result: ScanResult) {
         val device = result.device
         val id = device.address
+        val recordName = result.scanRecord?.deviceName ?: id
         if (!seen.add(id)) return
-        Log.i(TAG, "Found supported device: ${device.name} ($id)")
-        emit(device)
+        Log.i(TAG, "Found supported device: name=$recordName ($id)")
+        emit(result)
     }
 
     override fun onScanFailed(errorCode: Int) {
