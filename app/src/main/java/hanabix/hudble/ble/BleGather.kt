@@ -49,8 +49,8 @@ internal class DefaultBleGather<D>(
             .onEach { event -> state = handle(state, event) }
             .launchIn(scope)
 
-        val source = scan(metrics)
-        val scanning = (if (metrics.isEmpty()) source else source.take(metrics.size))
+        val scanning = scan(metrics)
+            .take(metrics.size)
             .timeout(timeout)
             .onEach { device -> bus.trySend(Event.Found(device)) }
             .onCompletion { bus.trySend(Event.NoMoreDevice) }

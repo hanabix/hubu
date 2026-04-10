@@ -15,7 +15,6 @@ import java.util.UUID
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flow
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -27,37 +26,26 @@ internal class AndroidConnect(
 ) : BleConnect<BluetoothDevice> {
     @SuppressLint("MissingPermission")
     override fun invoke(metrics: List<BleMetric>): (BluetoothDevice) -> Flow<BleConnectEvent<BluetoothDevice>> = { device ->
-        if (metrics.isEmpty()) {
-            flow {
-                emit(
-                    BleConnectEvent.Fatal(
-                        device = device,
-                        cause = "No metrics requested",
-                    ),
-                )
-            }
-        } else {
-            callbackFlow {
-                val send: (BleConnectEvent<BluetoothDevice>) -> Unit = { event ->
-                    when (event) {
-                        is BleConnectEvent.Fatal -> {
-                            trySend(event)
-                            close()
-                        }
-
-                        else -> trySend(event)
+        callbackFlow {
+            val send: (BleConnectEvent<BluetoothDevice>) -> Unit = { event ->
+                when (event) {
+                    is BleConnectEvent.Fatal -> {
+                        trySend(event)
+                        close()
                     }
-                }
-                val callback = AndroidConnectCallback(
-                    device = device,
-                    metrics = metrics,
-                    emit = send,
-                )
-                val gatt = device.connectGatt(context.applicationContext, false, callback)
 
-                awaitClose {
-                    gatt.close()
+                    else -> trySend(event)
                 }
+            }
+            val callback = AndroidConnectCallback(
+                device = device,
+                metrics = metrics,
+                emit = send,
+            )
+            val gatt = device.connectGatt(context.applicationContext, false, callback)
+
+            awaitClose {
+                gatt.close()
             }
         }
     }

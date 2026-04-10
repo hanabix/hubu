@@ -300,31 +300,6 @@ class BleGatherTest {
     }
 
     @Test
-    fun `collects scan but does not connect when metrics are empty`() = runBlocking {
-        val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
-        val connect = FakeConnect()
-        var collected = false
-        val scan = BleScan<String> {
-            flow {
-                collected = true
-                emit("a")
-            }
-        }
-        val gather = DefaultBleGather(scope, scan, connect.asConnect())
-        val events = mutableListOf<BleEvent>()
-
-        gather(emptyList()).onEach { events += it }.launchIn(scope)
-
-        waitUntil("scan collection") {
-            collected
-        }
-
-        assertTrue(connect.invoked.isEmpty())
-        assertTrue(events.none { it is BleEvent.Available })
-        assertTrue(events.none { it is BleEvent.Unavailable })
-    }
-
-    @Test
     fun `emits unavailable when scan times out`() = runBlocking {
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         val connect = FakeConnect()
