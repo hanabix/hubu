@@ -1,3 +1,5 @@
+![hubu logo](app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png)
+
 这是一款 Rokid Glasses 应用，用于配合符合低功耗蓝牙标准的设备，如佳明手表，显示运动的实时数据。
 
 ## UI 视图

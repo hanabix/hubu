@@ -1,0 +1,96 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null
+
+      - name: Install SDK packages
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Run tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease
+
+      - name: Sign APK
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          apk="app/build/outputs/apk/release/app-release-unsigned.apk"
+          aligned="$RUNNER_TEMP/app-release-aligned.apk"
+          signed="$RUNNER_TEMP/app-release-signed.apk"
+
+          if [ -n "${SIGNING_KEYSTORE_BASE64:-}" ]; then
+            keystore="$RUNNER_TEMP/release.keystore"
+            printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+            store_pass="${SIGNING_KEYSTORE_PASSWORD:?missing SIGNING_KEYSTORE_PASSWORD}"
+            key_pass="${SIGNING_KEY_PASSWORD:-$store_pass}"
+            alias_name="${SIGNING_KEY_ALIAS:?missing SIGNING_KEY_ALIAS}"
+          else
+            keystore="$RUNNER_TEMP/debug.keystore"
+            store_pass="android"
+            key_pass="android"
+            alias_name="androiddebugkey"
+
+            keytool -genkeypair \
+              -keystore "$keystore" \
+              -storepass "$store_pass" \
+              -keypass "$key_pass" \
+              -alias "$alias_name" \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000
+          fi
+
+          zipalign="$(find "$sdk_root/build-tools" -name zipalign | sort -V | tail -n 1)"
+          apksigner="$(find "$sdk_root/build-tools" -name apksigner | sort -V | tail -n 1)"
+
+          "$zipalign" -p 4 "$apk" "$aligned"
+          "$apksigner" sign \
+            --ks "$keystore" \
+            --ks-pass "pass:$store_pass" \
+            --key-pass "pass:$key_pass" \
+            --ks-key-alias "$alias_name" \
+            --out "$signed" \
+            "$aligned"
+
+          echo "SIGNED_APK=$signed" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: ${{ env.SIGNED_APK }}
