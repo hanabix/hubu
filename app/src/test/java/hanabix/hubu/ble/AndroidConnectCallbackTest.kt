@@ -14,13 +14,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.util.UUID
 
-@RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [33])
 class AndroidConnectCallbackTest {
 
     @Test
@@ -326,6 +321,7 @@ class AndroidConnectCallbackTest {
             device = device,
             metrics = metrics,
             emit = { events += it },
+            log = NoopLogger,
             sdkInt = sdkInt,
         )
 

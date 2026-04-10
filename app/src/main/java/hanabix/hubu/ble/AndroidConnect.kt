@@ -9,7 +9,6 @@ import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
@@ -22,6 +21,7 @@ private val CCCD = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
 
 internal class AndroidConnect(
     private val context: Context,
+    private val log: Logger = AndroidLogger,
 ) : BleConnect<ScannedDevice> {
     @SuppressLint("MissingPermission")
     override fun invoke(metrics: List<BleMetric>): (ScannedDevice) -> Flow<BleConnectEvent<ScannedDevice>> = { device ->
@@ -40,6 +40,7 @@ internal class AndroidConnect(
                 device = device,
                 metrics = metrics,
                 emit = send,
+                log = log,
             )
             val gatt = device.device.connectGatt(context.applicationContext, false, callback)
 
@@ -54,6 +55,7 @@ internal class AndroidConnectCallback(
     private val device: ScannedDevice,
     private val metrics: List<BleMetric>,
     private val emit: (BleConnectEvent<ScannedDevice>) -> Unit,
+    private val log: Logger = AndroidLogger,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
 ) : BluetoothGattCallback() {
     private val supportedQueue = ConcurrentLinkedQueue<BleMetric>()
@@ -185,7 +187,7 @@ internal class AndroidConnectCallback(
                     cause = message,
                 ),
             )
-            Log.e(TAG, message)
+            log.e(TAG, message)
         }
     }
 }

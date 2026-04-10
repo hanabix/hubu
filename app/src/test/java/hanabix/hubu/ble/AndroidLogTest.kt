@@ -1,21 +1,17 @@
 package hanabix.hubu.ble
 
-import android.util.Log
 import hanabix.hubu.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [33])
 class AndroidLogTest {
 
     @Test
-    fun `log i does not crash under jvm`() {
-        assertEquals(0, Log.i("AndroidLogTest", "hello"))
+    fun `noop logger does not crash on jvm`() {
+        NoopLogger.i("AndroidLogTest", "hello")
+        NoopLogger.w("AndroidLogTest", "hello")
+        NoopLogger.e("AndroidLogTest", "hello")
     }
 
     @Test
