@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1625" height="633" viewBox="0 0 1625 633" fill="none">
-  <defs>
-    <mask id="logo-mask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
-      <image href="hubu-logo.png" x="-107" y="-590" width="1877" height="1618" preserveAspectRatio="none" />
-    </mask>
-  </defs>
-  <image href="hubu-logo.png" x="-107" y="-590" width="1877" height="1618" preserveAspectRatio="none" mask="url(#logo-mask)" />
-</svg>
