@@ -1,3 +1,4 @@
+
 ![hubu logo](app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png)
 
 这是一款 Rokid Glasses 应用，用于配合符合低功耗蓝牙标准的设备，如佳明手表，显示运动的实时数据。
@@ -31,18 +32,17 @@ UI效果原型参见：[view-480x640](prototype/view-480x640.html)
 - [ ] [Cycling Power Service](https://www.bluetooth.com/specifications/specs/cycling-power-service/)
 
 
-## 下载安装
+## 下载
 
-TODO
+[![Latest Release](https://img.shields.io/github/v/release/hanabix/hubu?label=Latest%20Release)](https://github.com/hanabix/hubu/releases/latest/download/hubu-release.apk)
 
-## 安装开发包
+## 安装
 
 ```bash
-./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## 查询安装包版本
+## 查询安装版本
 
 ```bash
 adb shell dumpsys package hanabix.hubu | grep versionName
