@@ -56,7 +56,7 @@ jobs:
           sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
           apk="app/build/outputs/apk/release/app-release-unsigned.apk"
           aligned="$RUNNER_TEMP/app-release-aligned.apk"
-          signed="$RUNNER_TEMP/app-release-signed.apk"
+          signed="$RUNNER_TEMP/hubu-release.apk"
 
           if [ -n "${SIGNING_KEYSTORE_BASE64:-}" ]; then
             keystore="$RUNNER_TEMP/release.keystore"
