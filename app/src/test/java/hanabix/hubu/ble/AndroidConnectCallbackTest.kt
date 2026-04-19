@@ -93,7 +93,7 @@ class AndroidConnectCallbackTest {
         verify(exactly = 1) {
             gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER)
         }
-        assertTrue(harness.events.none { it is BleConnectEvent.Unsupported })
+        assertTrue(harness.events.none { it is BleConnect.Event.Connected })
         verify(exactly = 1) {
             gatt.setCharacteristicNotification(hr.characteristic, true)
             gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
@@ -147,11 +147,9 @@ class AndroidConnectCallbackTest {
             status = BluetoothGatt.GATT_SUCCESS,
         )
 
-        val unsupported = harness.events.filterIsInstance<BleConnectEvent.Unsupported<ScannedDevice>>()
+        val unsupported = harness.events.filterIsInstance<BleConnect.Event.Connected>()
         assertEquals(1, unsupported.size)
-        assertEquals(harness.device, unsupported.single().value)
-        assertTrue(unsupported.single().part)
-        assertEquals(listOf(BleMetric.RunSpeedCadence), unsupported.single().metrics)
+        assertEquals(listOf(BleMetric.RunSpeedCadence), unsupported.single().unsupported)
         verify(exactly = 1) {
             gatt.setCharacteristicNotification(hr.characteristic, true)
             gatt.writeDescriptor(hr.descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
@@ -246,7 +244,7 @@ class AndroidConnectCallbackTest {
             value = byteArrayOf(0x06, 0x72),
         )
 
-        val notify = harness.events.filterIsInstance<BleConnectEvent.Notify<ScannedDevice>>()
+        val notify = harness.events.filterIsInstance<BleConnect.Event.Notify<ScannedDevice>>()
         assertEquals(1, notify.size)
         assertEquals(BleMetric.HeartRate, notify.single().meter.metric)
         assertArrayEquals(byteArrayOf(0x06, 0x72), notify.single().meter.data)
@@ -265,7 +263,7 @@ class AndroidConnectCallbackTest {
             characteristic = characteristic,
         )
 
-        val notify = harness.events.filterIsInstance<BleConnectEvent.Notify<ScannedDevice>>()
+        val notify = harness.events.filterIsInstance<BleConnect.Event.Notify<ScannedDevice>>()
         assertEquals(1, notify.size)
         assertEquals(BleMetric.HeartRate, notify.single().meter.metric)
         assertArrayEquals(byteArrayOf(0x06, 0x72), notify.single().meter.data)
@@ -316,7 +314,7 @@ class AndroidConnectCallbackTest {
         metrics: List<BleMetric> = listOf(BleMetric.HeartRate, BleMetric.RunSpeedCadence),
         sdkInt: Int = 33,
     ) {
-        val events = mutableListOf<BleConnectEvent<ScannedDevice>>()
+        val events = mutableListOf<BleConnect.Event<ScannedDevice>>()
         val device = ScannedDevice(
             device = mockk(relaxed = true),
             name = "Enduro 2",
@@ -329,7 +327,7 @@ class AndroidConnectCallbackTest {
             sdkInt = sdkInt,
         )
 
-        fun fatalCount(): Int = events.count { it is BleConnectEvent.Fatal }
+        fun fatalCount(): Int = events.count { it is BleConnect.Event.Disconnected }
     }
 
     private data class SupportedFixture(

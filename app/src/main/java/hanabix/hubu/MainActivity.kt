@@ -16,9 +16,9 @@ import androidx.lifecycle.ViewModelProvider
 import hanabix.hubu.ble.AndroidConnect
 import hanabix.hubu.ble.AndroidScan
 import hanabix.hubu.ble.BleViewModel
+import hanabix.hubu.ble.DeviceInfo
 import hanabix.hubu.ble.STATUS_CONNECTING
 import hanabix.hubu.ble.STATUS_TAP_TO_RECONNECT
-import hanabix.hubu.ble.ScannedDeviceBleInfo
 import hanabix.hubu.util.Clock
 import hanabix.hubu.util.HostBattery
 import hanabix.hubu.ui.HUDScreen
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 val scanner = AndroidScan(application)
                 val connector = AndroidConnect(application)
-                return BleViewModel(scanner, connector, ScannedDeviceBleInfo) as T
+                return BleViewModel(scanner, connector, DeviceInfo.ScannedDeviceInfo) as T
             }
         }
     }

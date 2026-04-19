@@ -24,11 +24,16 @@ internal class AndroidConnect(
     private val log: Logger = AndroidLogger,
 ) : BleConnect<ScannedDevice> {
     @SuppressLint("MissingPermission")
-    override fun invoke(metrics: List<BleMetric>): (ScannedDevice) -> Flow<BleConnectEvent<ScannedDevice>> = { device ->
+    override fun invoke(metrics: List<BleMetric>): (ScannedDevice) -> Flow<BleConnect.Event<ScannedDevice>> = { device ->
         callbackFlow {
-            val send: (BleConnectEvent<ScannedDevice>) -> Unit = { event ->
+            val send: (BleConnect.Event<ScannedDevice>) -> Unit = { event ->
                 when (event) {
-                    is BleConnectEvent.Fatal -> {
+                    is BleConnect.Event.Abandon -> {
+                        trySend(event)
+                        close()
+                    }
+
+                    is BleConnect.Event.Disconnected -> {
                         trySend(event)
                         close()
                     }
@@ -54,7 +59,7 @@ internal class AndroidConnect(
 internal class AndroidConnectCallback(
     private val device: ScannedDevice,
     private val metrics: List<BleMetric>,
-    private val emit: (BleConnectEvent<ScannedDevice>) -> Unit,
+    private val emit: (BleConnect.Event<ScannedDevice>) -> Unit,
     private val log: Logger,
     private val sdkInt: Int = Build.VERSION.SDK_INT,
 ) : BluetoothGattCallback() {
@@ -91,13 +96,16 @@ internal class AndroidConnectCallback(
             }
             val supported = metrics.filterNot { metric -> metric in unsupported.toSet() }
             if (unsupported.isNotEmpty()) {
-                emit(
-                    BleConnectEvent.Unsupported(
-                        value = device,
-                        part = supported.isNotEmpty(),
-                        metrics = unsupported,
-                    ),
-                )
+                if (supported.isNotEmpty()) {
+                    emit(BleConnect.Event.Connected(unsupported = unsupported))
+                } else {
+                    emit(
+                        BleConnect.Event.Abandon(
+                            device = device,
+                            unsupported = unsupported,
+                        ),
+                    )
+                }
             }
             if (supported.isEmpty()) {
                 fatal("No supported metrics found")
@@ -149,8 +157,8 @@ internal class AndroidConnectCallback(
             }
 
         emit(
-            BleConnectEvent.Notify(
-                value = device,
+            BleConnect.Event.Notify(
+                device = device,
                 meter = BleMeter(metric = metric, data = value),
             ),
         )
@@ -184,8 +192,8 @@ internal class AndroidConnectCallback(
     private fun fatal(message: String) {
         if (fatalEmit.compareAndSet(false, true)) {
             emit(
-                BleConnectEvent.Fatal(
-                    value = device,
+                BleConnect.Event.Disconnected(
+                    device = device,
                     cause = message,
                 ),
             )
