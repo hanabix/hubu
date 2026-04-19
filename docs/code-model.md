@@ -74,9 +74,9 @@ type BleConnect[A] = (Seq[BleMetric], A) => Flow[BleConnect.Event[A]]
 object BleConnect {
   enum Event[A]:
     case Connected(unsupported: Seq[BleMetric])
-    case Abandon(value: A, unsupported: Seq[BleMetric])
-    case Notify(value: A, meter: BleMeter)
-    case Disconnected(value: A, cause: String)
+    case Abandon(device: A, unsupported: Seq[BleMetric])
+    case Notify(device: A, meter: BleMeter)
+    case Disconnected(device: A)
   
   type CreateCallback = (ScannedDevice, Seq[BleMetric], BleChannel[Event]) => BluetoothGattCallback
   

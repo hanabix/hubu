@@ -110,9 +110,7 @@ internal class AndroidConnectCallback(
                 fatal("Connection failed: status=$status")
 
             newState == BluetoothProfile.STATE_CONNECTED -> {
-                if (!gatt.discoverServices()) {
-                    fatal("discoverServices returned false")
-                }
+                fatalIf(!gatt.discoverServices(), "discoverServices returned false")
             }
 
             newState == BluetoothProfile.STATE_DISCONNECTED ->
@@ -130,14 +128,14 @@ internal class AndroidConnectCallback(
             }
             val supported = metrics.filterNot { metric -> metric in unsupported.toSet() }
             if (unsupported.size == metrics.size) {
-                emitAbandon(unsupported)
+                emitAbandon()
                 return
             }
-            channel.emit(BleConnect.Event.Connected(unsupported = unsupported))
+            channel.emit(BleConnect.Event.Connected(unsupported))
             supportedQueue.addAll(supported)
             enableNextNotification(gatt)
         } else {
-            emitAbandon(metrics)
+            emitAbandon()
         }
     }
 
@@ -158,8 +156,7 @@ internal class AndroidConnectCallback(
         gatt: BluetoothGatt,
         characteristic: BluetoothGattCharacteristic,
     ) {
-        val value = characteristic.value ?: return
-        handleNotify(characteristic, value)
+        emitNotify(characteristic, characteristic.value)
     }
 
     override fun onCharacteristicChanged(
@@ -167,22 +164,19 @@ internal class AndroidConnectCallback(
         characteristic: BluetoothGattCharacteristic,
         value: ByteArray,
     ) {
-        handleNotify(characteristic, value)
+        emitNotify(characteristic, value)
     }
 
-    private fun handleNotify(
+    private fun emitNotify(
         characteristic: BluetoothGattCharacteristic,
         value: ByteArray,
     ) {
-        val metric = BleMetric.entries.firstOrNull { it.characteristic == characteristic.uuid }
-            ?: run {
-                return
-            }
+        val metric = BleMetric.entries.first { it.characteristic == characteristic.uuid }
 
         channel.emit(
             BleConnect.Event.Notify(
-                device = device,
-                meter = BleMeter(metric = metric, data = value),
+                device,
+                BleMeter(metric, value),
             ),
         )
     }
@@ -200,37 +194,43 @@ internal class AndroidConnectCallback(
                 cccd,
                 BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE,
             )
-            if (writeResult != BluetoothStatusCodes.SUCCESS) {
-                fatal("writeDescriptor failed for ${char.uuid}: result=$writeResult")
-            }
+            fatalIf(
+                writeResult != BluetoothStatusCodes.SUCCESS,
+                "writeDescriptor failed for ${char.uuid}: result=$writeResult",
+            )
         } else {
             cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
             val writeResult = gatt.writeDescriptor(cccd)
-            if (!writeResult) {
-                fatal("writeDescriptor failed for ${char.uuid}")
-            }
+            fatalIf(!writeResult, "writeDescriptor failed for ${char.uuid}")
         }
     }
 
-    private fun emitAbandon(unsupported: List<BleMetric>) {
+    private fun emitAbandon() {
         channel.emit(
             BleConnect.Event.Abandon(
-                device = device,
-                unsupported = unsupported,
+                device,
+                metrics,
             ),
         )
         channel.close()
     }
 
     private fun fatal(message: String) {
+        log.e(TAG, message)
         if (fatalEmit.compareAndSet(false, true)) {
             channel.emit(
                 BleConnect.Event.Disconnected(
-                    device = device,
-                    cause = message,
+                    device,
+                    message,
                 ),
             )
-            log.e(TAG, message)
+            channel.close()
+        }
+    }
+
+    private fun fatalIf(expr: Boolean, message: String) {
+        if (expr) {
+            fatal(message)
         }
     }
 }

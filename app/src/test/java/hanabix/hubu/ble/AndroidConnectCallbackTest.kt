@@ -280,8 +280,8 @@ class AndroidConnectCallbackTest {
         assertArrayEquals(byteArrayOf(0x06, 0x72), notify.single().meter.data)
     }
 
-    @Test
-    fun `onCharacteristicChanged ignores unknown metric`() {
+    @Test(expected = NoSuchElementException::class)
+    fun `onCharacteristicChanged fails on unknown metric`() {
         val harness = Harness()
         val gatt = mockk<BluetoothGatt>()
         val characteristic = mockk<BluetoothGattCharacteristic>()
@@ -292,8 +292,6 @@ class AndroidConnectCallbackTest {
             characteristic = characteristic,
             value = byteArrayOf(0x01),
         )
-
-        assertTrue(harness.events.isEmpty())
     }
 
     @Test
