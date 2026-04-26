@@ -62,8 +62,10 @@ internal class GattCallbackBridge(
             status != BluetoothGatt.GATT_SUCCESS ->
                 disconnect("Gatt connection failed: status=$status")
 
-            newState == BluetoothProfile.STATE_CONNECTED ->
+            newState == BluetoothProfile.STATE_CONNECTED -> {
+                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER)
                 gatt.discoverServices()
+            }
 
             newState == BluetoothProfile.STATE_DISCONNECTED ->
                 disconnect()
@@ -150,7 +152,7 @@ internal class GattCallbackBridge(
 
     private fun disconnect(msg: String? = null, cause: Throwable? = null) {
         if (msg != null) {
-            logger.e(TAG, msg)
+            logger.w(TAG, msg)
         }
         pending.clear()
         channel.trySend(Connect.Status.Disconnected(source, cause ?: msg?.let(::BleError)))

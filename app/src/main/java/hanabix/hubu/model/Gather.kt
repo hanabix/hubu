@@ -31,7 +31,6 @@ private class DefaultGather<A>(
     override fun invoke(metrics: Set<Metric>): Flow<Meter<A>> = channelFlow {
         val bus = Channel<Event<A>>(Channel.UNLIMITED)
         val channel = this as SendChannel<Meter<A>>
-        lateinit var state: State<A>
         val launchConnect: LaunchConnect<A> = { source, requested ->
             val job = connect(source, requested)
                 .onEach { status -> bus.trySend(status.asEvent(source)) }
@@ -42,7 +41,7 @@ private class DefaultGather<A>(
         }
         val react = React(channel, launchConnect)
 
-        state = State(unsupported = metrics)
+        var state: State<A> = State(unsupported = metrics)
 
         val reducer = bus.receiveAsFlow()
             .onEach { event -> state = react(state, event) }

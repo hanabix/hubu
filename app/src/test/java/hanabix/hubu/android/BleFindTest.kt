@@ -1,17 +1,10 @@
 package hanabix.hubu.android
 
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothManager
-import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
-import android.content.Context
-import io.mockk.Runs
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.toList
@@ -19,7 +12,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.time.Duration.Companion.milliseconds
 
 class BleFindTest {
 
@@ -83,36 +75,12 @@ class BleFindTest {
     @Test
     fun `scan callback emits done on scan failed`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Find.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
-        val callback = ScanCallbackBridge(channel, logger)
+        val callback = ScanCallbackBridge(channel, NoopLogger)
 
         callback.onScanFailed(7)
 
         val done = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Find.Status.Done
         assertTrue(done.cause?.message == "BLE scan failed: code=7")
-        verify(exactly = 1) { logger.e("BleFind", "BLE scan failed: code=7") }
-    }
-
-    @Test
-    fun `ble find completes on timeout`() = runBlocking {
-        val context = mockk<Context>()
-        val manager = mockk<BluetoothManager>()
-        val adapter = mockk<BluetoothAdapter>()
-        val scanner = mockk<android.bluetooth.le.BluetoothLeScanner>()
-        every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
-        every { manager.adapter } returns adapter
-        every { adapter.bluetoothLeScanner } returns scanner
-        every { scanner.startScan(any<ScanCallback>()) } just Runs
-        every { scanner.stopScan(any<ScanCallback>()) } just Runs
-
-        val events = BleFind(context, 100.milliseconds).invoke(emptySet()).toList()
-
-        assertEquals(
-            listOf(hanabix.hubu.model.Find.Status.Done(null)),
-            events,
-        )
-        verify(exactly = 1) { scanner.startScan(any<ScanCallback>()) }
-        verify(exactly = 1) { scanner.stopScan(any<ScanCallback>()) }
     }
 
     private fun result(

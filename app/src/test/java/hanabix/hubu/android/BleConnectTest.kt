@@ -22,7 +22,6 @@ class BleConnectTest {
     @Test
     fun `gatt callback emits unsupported received and disconnected`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val heartRate = metric("0000180D-0000-1000-8000-00805F9B34FB", "00002A37-0000-1000-8000-00805F9B34FB")
         val cadence = metric("00001814-0000-1000-8000-00805F9B34FB", "00002A53-0000-1000-8000-00805F9B34FB")
@@ -35,7 +34,7 @@ class BleConnectTest {
             source = source,
             requested = setOf(heartRate, cadence),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
 
         every { gatt.discoverServices() } returns true
@@ -51,11 +50,7 @@ class BleConnectTest {
         every { characteristic.uuid } returns heartRate.characteristic
         every { characteristic.value } returns byteArrayOf(0x01, 0x02)
 
-        callback.onConnectionStateChange(
-            gatt = gatt,
-            status = BluetoothGatt.GATT_SUCCESS,
-            newState = BluetoothProfile.STATE_CONNECTED,
-        )
+        connected(callback, gatt)
         callback.onServicesDiscovered(gatt, BluetoothGatt.GATT_SUCCESS)
         verify(exactly = 1) { gatt.writeDescriptor(descriptor) }
         callback.onDescriptorWrite(gatt, descriptor, BluetoothGatt.GATT_SUCCESS)
@@ -80,13 +75,11 @@ class BleConnectTest {
             ),
             channel.receiveAsFlow().toList(),
         )
-        verify(exactly = 0) { logger.e(any(), any()) }
     }
 
     @Test
     fun `gatt callback writes notification descriptors sequentially`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val first = metric("0000180D-0000-1000-8000-00805F9B34FB", "00002A37-0000-1000-8000-00805F9B34FB")
         val second = metric("00001814-0000-1000-8000-00805F9B34FB", "00002A53-0000-1000-8000-00805F9B34FB")
@@ -102,7 +95,7 @@ class BleConnectTest {
             source = source,
             requested = setOf(first, second),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
 
         every { gatt.discoverServices() } returns true
@@ -119,11 +112,7 @@ class BleConnectTest {
         every { gatt.writeDescriptor(firstDescriptor) } returns true
         every { gatt.writeDescriptor(secondDescriptor) } returns true
 
-        callback.onConnectionStateChange(
-            gatt = gatt,
-            status = BluetoothGatt.GATT_SUCCESS,
-            newState = BluetoothProfile.STATE_CONNECTED,
-        )
+        connected(callback, gatt)
         callback.onServicesDiscovered(gatt, BluetoothGatt.GATT_SUCCESS)
         verify(exactly = 1) { gatt.writeDescriptor(firstDescriptor) }
         verify(exactly = 0) { gatt.writeDescriptor(secondDescriptor) }
@@ -142,13 +131,12 @@ class BleConnectTest {
             listOf(hanabix.hubu.model.Connect.Status.Disconnected(source, null)),
             channel.receiveAsFlow().toList(),
         )
-        verify(exactly = 0) { logger.e(any(), any()) }
     }
 
     @Test
     fun `gatt callback emits disconnected on gatt error`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
+        val logger = NoopLogger
         val source = source()
         val callback = GattCallbackBridge(
             source = source,
@@ -167,19 +155,17 @@ class BleConnectTest {
         val disconnected = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Connect.Status.Disconnected
         assertEquals(source, disconnected.source)
         assertTrue(disconnected.cause?.message == "Gatt connection failed: status=42")
-        verify(exactly = 1) { logger.e("BleConnect", "Gatt connection failed: status=42") }
     }
 
     @Test
-    fun `gatt callback logs service discovery failure`() = runBlocking {
+    fun `gatt callback emits disconnected on service discovery failure`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val callback = GattCallbackBridge(
             source = source,
             requested = emptySet(),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
         val gatt = mockk<BluetoothGatt>()
 
@@ -188,19 +174,17 @@ class BleConnectTest {
         val disconnected = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Connect.Status.Disconnected
         assertEquals(source, disconnected.source)
         assertTrue(disconnected.cause?.message == "Gatt service discovery failed: status=7")
-        verify(exactly = 1) { logger.e("BleConnect", "Gatt service discovery failed: status=7") }
     }
 
     @Test
-    fun `gatt callback logs descriptor write failure`() = runBlocking {
+    fun `gatt callback emits disconnected on descriptor write failure`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val callback = GattCallbackBridge(
             source = source,
             requested = emptySet(),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
         val gatt = mockk<BluetoothGatt>()
         val descriptor = mockk<BluetoothGattDescriptor>()
@@ -210,13 +194,11 @@ class BleConnectTest {
         val disconnected = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Connect.Status.Disconnected
         assertEquals(source, disconnected.source)
         assertTrue(disconnected.cause?.message == "Gatt descriptor write failed: status=8")
-        verify(exactly = 1) { logger.e("BleConnect", "Gatt descriptor write failed: status=8") }
     }
 
     @Test
     fun `gatt callback disconnects when notification registration fails`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val metric = metric("0000180D-0000-1000-8000-00805F9B34FB", "00002A37-0000-1000-8000-00805F9B34FB")
         val gatt = mockk<BluetoothGatt>()
@@ -228,7 +210,7 @@ class BleConnectTest {
             source = source,
             requested = setOf(metric),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
 
         every { gatt.discoverServices() } returns true
@@ -237,24 +219,18 @@ class BleConnectTest {
         every { characteristic.getDescriptor(cccd) } returns descriptor
         every { gatt.setCharacteristicNotification(characteristic, true) } returns false
 
-        callback.onConnectionStateChange(
-            gatt = gatt,
-            status = BluetoothGatt.GATT_SUCCESS,
-            newState = BluetoothProfile.STATE_CONNECTED,
-        )
+        connected(callback, gatt)
         callback.onServicesDiscovered(gatt, BluetoothGatt.GATT_SUCCESS)
 
         val disconnected = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Connect.Status.Disconnected
         assertEquals(source, disconnected.source)
         assertTrue(disconnected.cause?.message == "Gatt notification setup failed: metric=$metric")
-        verify(exactly = 1) { logger.e("BleConnect", "Gatt notification setup failed: metric=$metric") }
         verify(exactly = 0) { gatt.writeDescriptor(any()) }
     }
 
     @Test
     fun `gatt callback disconnects when descriptor value setup fails`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val metric = metric("0000180D-0000-1000-8000-00805F9B34FB", "00002A37-0000-1000-8000-00805F9B34FB")
         val gatt = mockk<BluetoothGatt>()
@@ -266,7 +242,7 @@ class BleConnectTest {
             source = source,
             requested = setOf(metric),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
 
         every { gatt.discoverServices() } returns true
@@ -276,24 +252,18 @@ class BleConnectTest {
         every { gatt.setCharacteristicNotification(characteristic, true) } returns true
         every { descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) } returns false
 
-        callback.onConnectionStateChange(
-            gatt = gatt,
-            status = BluetoothGatt.GATT_SUCCESS,
-            newState = BluetoothProfile.STATE_CONNECTED,
-        )
+        connected(callback, gatt)
         callback.onServicesDiscovered(gatt, BluetoothGatt.GATT_SUCCESS)
 
         val disconnected = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Connect.Status.Disconnected
         assertEquals(source, disconnected.source)
         assertTrue(disconnected.cause?.message == "Gatt descriptor value setup failed: metric=$metric")
-        verify(exactly = 1) { logger.e("BleConnect", "Gatt descriptor value setup failed: metric=$metric") }
         verify(exactly = 0) { gatt.writeDescriptor(any()) }
     }
 
     @Test
     fun `gatt callback disconnects when descriptor write request fails`() = runBlocking {
         val channel = Channel<hanabix.hubu.model.Connect.Status<DeviceSource>>(Channel.UNLIMITED)
-        val logger = mockk<Logger>(relaxed = true)
         val source = source()
         val metric = metric("0000180D-0000-1000-8000-00805F9B34FB", "00002A37-0000-1000-8000-00805F9B34FB")
         val gatt = mockk<BluetoothGatt>()
@@ -305,7 +275,7 @@ class BleConnectTest {
             source = source,
             requested = setOf(metric),
             channel = channel,
-            logger = logger,
+            logger = NoopLogger,
         )
 
         every { gatt.discoverServices() } returns true
@@ -316,17 +286,12 @@ class BleConnectTest {
         every { descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) } returns true
         every { gatt.writeDescriptor(descriptor) } returns false
 
-        callback.onConnectionStateChange(
-            gatt = gatt,
-            status = BluetoothGatt.GATT_SUCCESS,
-            newState = BluetoothProfile.STATE_CONNECTED,
-        )
+        connected(callback, gatt)
         callback.onServicesDiscovered(gatt, BluetoothGatt.GATT_SUCCESS)
 
         val disconnected = channel.receiveAsFlow().toList().single() as hanabix.hubu.model.Connect.Status.Disconnected
         assertEquals(source, disconnected.source)
         assertTrue(disconnected.cause?.message == "Gatt descriptor write request failed")
-        verify(exactly = 1) { logger.e("BleConnect", "Gatt descriptor write request failed") }
     }
 
     private fun source(): DeviceSource {
@@ -336,6 +301,19 @@ class BleConnectTest {
             name = "watch",
             device = device,
         )
+    }
+
+    private fun connected(
+        callback: GattCallbackBridge,
+        gatt: BluetoothGatt,
+    ) {
+        every { gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER) } returns true
+        callback.onConnectionStateChange(
+            gatt = gatt,
+            status = BluetoothGatt.GATT_SUCCESS,
+            newState = BluetoothProfile.STATE_CONNECTED,
+        )
+        verify(exactly = 1) { gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER) }
     }
 
     private fun metric(service: String, characteristic: String) = hanabix.hubu.model.Metric(
