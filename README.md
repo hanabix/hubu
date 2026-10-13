@@ -3,7 +3,7 @@
 
 这是一款 Rokid Glasses 应用，用于配合符合低功耗蓝牙标准的设备，如佳明手表，显示运动的实时数据。
 
-![demo](https://basecloud.rokidcdn.com/ugc/19015db0-a5d9-4d2a-9384-bc7f57ee5be1.mov?x-oss-process=video/snapshot,w_0,h_0,t_100,f_jpg,m_fast,ar_auto)
+![demo](demo.png)
 
 
 ## UI 视图
