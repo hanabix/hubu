@@ -1,7 +1,7 @@
 package hanabix.hubu
 
-import android.Manifest
 import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -47,10 +47,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val locationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) viewModel.run()
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { permissions ->
+        if (permissions.values.all { it }) viewModel.run()
     }
 
     @SuppressLint("RestrictedApi")
@@ -89,16 +89,15 @@ class MainActivity : ComponentActivity() {
                 batteryLevel = batteryLevel,
             )
         }
-        requestLocationPermission()
+        requestPermissions()
     }
 
-    private fun requestLocationPermission() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
-            android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
+    private fun requestPermissions() {
+        val permissions = permissionsFor(Build.VERSION.SDK_INT)
+        if (permissions.all { checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
             viewModel.run()
         } else {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            permissionLauncher.launch(permissions.toTypedArray())
         }
     }
 }
